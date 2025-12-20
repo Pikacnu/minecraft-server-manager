@@ -31,12 +31,6 @@ export default function Home() {
           ))}
         </div>
       </div>
-      <div className='flex flex-row'>
-        <div className='flex flex-col m-4 border-2 border-gray-300 rounded-lg p-4 w-full'>
-          <div className='text-2xl font-bold mb-4'>Recent Activity</div>
-          <div className=''>No recent activity to display.</div>
-        </div>
-      </div>
       <div>
         <div className='flex flex-col m-4 border-2 border-gray-300 rounded-lg p-4'>
           <div className='text-2xl font-bold mb-4'>Server Status</div>

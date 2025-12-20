@@ -11,28 +11,71 @@ import {
   FileControllerManager,
   Filter,
 } from './manager/file-manager';
+import { DomainManager } from './manager/domain-manager';
+import {
+  CloudflareAPIToken,
+  DomainName,
+  isWildcardDomain,
+  ProxyIp,
+  SRVPort,
+  WildCardDomainPrefix,
+  ZoneID,
+} from './utils/config';
 const env = process.env;
 const port = env.PORT ? parseInt(env.PORT) : 3000;
 const host = env.HOST || 'localhost';
 
 try {
   // Ensure system required deployments are in place
+
   await deployService(SystemRequiredDeployments);
   console.log('System required deployments are ensured.');
+
+  // Initialize the Server Manager
+  Manager.getInstance();
+
+  // Initialize the File Controller Manager
+  await FileControllerManager.initialize('', {
+    filter: defaultFilter,
+  });
+
+  // Initialize the Domain Manager
+  DomainManager.getInstance();
+  if (CloudflareAPIToken && ZoneID && DomainName && SRVPort && ProxyIp) {
+    await DomainManager.setupDNSController(
+      DomainName,
+      CloudflareAPIToken,
+      ZoneID,
+      SRVPort,
+    );
+    DomainManager.proxyIP = ProxyIp;
+    if (isWildcardDomain) {
+      DomainManager.useWildcard = true;
+      DomainManager.wildcardDomainPrefix = WildCardDomainPrefix;
+      console.log('Domain Manager is set up with wildcard domain support.');
+    } else {
+      console.log('Domain Manager is set up with specific proxy IP.');
+    }
+  } else {
+    console.log(
+      'Domain Manager setup skipped due to missing environment variables.',
+    );
+  }
+
   // Start the web server
   const server = await webServer({
     port,
     hostname: host,
   });
-  Manager.getInstance();
-
   console.log(`Server started at http://${server.hostname}:${server.port}`);
-  await FileControllerManager.initialize('', {
-    filter: defaultFilter,
-  });
 } catch (error) {
   console.error('Failed to start server:', error);
 }
+
+process.on('exit', (code) => {
+  console.log(`Process exiting with code: ${code}`);
+  Manager.cleanup();
+});
 
 //await deployService(
 //  minecraftServerDeployment({

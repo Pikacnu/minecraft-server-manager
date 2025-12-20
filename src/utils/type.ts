@@ -1,4 +1,5 @@
 import { appsV1Api, coreV1Api } from './k8s';
+import { getMinecraftVersions } from './minecraft';
 import type {
   GeneralVariables,
   ServerVariables,
@@ -167,6 +168,7 @@ export interface FieldDefinition {
   category: string;
   options?: string[];
   description?: string;
+  readonly?: boolean;
 }
 
 export const FIELD_DEFINITIONS: FieldDefinition[] = [
@@ -186,14 +188,15 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
   {
     key: 'type',
     type: FieldType.Enum,
-    example: 'paper',
+    example: 'fabric',
     options: Object.values(MinecraftServerType),
     category: 'Deployment',
   },
   {
     key: 'version',
-    type: FieldType.String,
-    example: '1.20.1',
+    type: FieldType.Enum,
+    example: '1.20.5',
+    options: await getMinecraftVersions(),
     category: 'Deployment',
   },
   {
@@ -201,6 +204,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: 'mc.example.com',
     category: 'Deployment',
+    readonly: true,
   },
   {
     key: 'map_url',

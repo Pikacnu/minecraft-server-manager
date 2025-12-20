@@ -641,12 +641,48 @@ export async function updateEnvConfigMap(
   }
 }
 
+export async function patchENVConfigMap(
+  namespace: string,
+  configMapName: string,
+  data: { [key: string]: any },
+) {
+  try {
+    const patch = Object.entries(data)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => ({
+        op: 'replace',
+        path: `/data/${key.replace(/\//g, '~1')}`, // Escape slashes in keys
+        value: String(value),
+      }));
+
+    const options = {
+      headers: { 'Content-type': 'application/json-patch+json' },
+    };
+
+    await coreV1Api.patchNamespacedConfigMap({
+      name: configMapName,
+      namespace,
+      body: patch,
+      ...options,
+    });
+
+    console.log(
+      `ConfigMap ${configMapName} patched successfully in namespace ${namespace}`,
+    );
+  } catch (error) {
+    console.error(
+      `Failed to patch ConfigMap ${configMapName} in namespace ${namespace}:`,
+      error,
+    );
+  }
+}
+
 export async function getConfigMapData(
   namespace: string,
   configMapName: string,
   configName: string,
   fileType?: 'yaml' | 'json',
-) {
+): Promise<Record<string, unknown> | null> {
   try {
     const existingConfigMapResponse = await coreV1Api.readNamespacedConfigMap({
       name: configMapName,
@@ -655,14 +691,14 @@ export async function getConfigMapData(
     if (fileType === 'yaml') {
       return yaml.load(
         existingConfigMapResponse.data![configName] || '',
-      ) as V1ConfigMap;
+      ) as Record<string, unknown>;
     }
     if (fileType === 'json') {
       return JSON.parse(
         existingConfigMapResponse.data![configName] || '{}',
-      ) as V1ConfigMap;
+      ) as Record<string, unknown>;
     }
-    return existingConfigMapResponse.data;
+    return existingConfigMapResponse.data as Record<string, unknown>;
   } catch (error) {
     console.error(
       `Failed to get ConfigMap ${configMapName} in namespace ${namespace}:`,
@@ -878,4 +914,38 @@ export async function getDeploymentData(
     namespace,
   });
   return deployment;
+}
+
+export async function patchConfigMap(
+  namespace: string,
+  newData: any,
+  name: string,
+  key: string,
+) {
+  // Convert your object back to a YAML string for the ConfigMap field
+  const yamlString = yaml.dump(newData);
+
+  const patch = [
+    {
+      op: 'replace',
+      path: `/data/${key.replace(/\//g, '~1')}`, // Escape slashes in keys
+      value: yamlString,
+    },
+  ];
+
+  const options = {
+    headers: { 'Content-type': 'application/json-patch+json' },
+  };
+
+  try {
+    await coreV1Api.patchNamespacedConfigMap({
+      name,
+      namespace,
+      body: patch,
+      ...options,
+    });
+  } catch (err) {
+    console.error('Patch failed:', err);
+    throw err;
+  }
 }

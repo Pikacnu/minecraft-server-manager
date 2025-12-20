@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minecraft-server-manager
+  namespace: minecraft-servers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: minecraft-server-manager-role
+rules:
+  - apiGroups: ["", "apps", "batch", "networking.k8s.io"]
+    resources:
+      - deployments
+      - services
+      - pods
+      - persistentvolumes
+      - persistentvolumeclaims
+      - configmaps
+      - secrets
+      - nodes
+      - events
+      - namespaces
+      - ingresses
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: minecraft-server-manager-binding
+subjects:
+  - kind: ServiceAccount
+    name: minecraft-server-manager
+    namespace: minecraft-servers
+roleRef:
+  kind: ClusterRole
+  name: minecraft-server-manager-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minecraft-manager-secrets
+  namespace: minecraft-servers
+type: Opaque
+stringData:
+  # Replace these with your actual secrets
+  PROXY_IP: "your-proxy-ip"
+  ZONE_ID: "your-zone-id"
+  VELOCITY_SECRET: "your-velocity-secret"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minecraft-manager-config
+  namespace: minecraft-servers
+data:
+  NODE_ENV: "production"
+  NAMESPACE: "minecraft-servers"
+  APP_NAME: "minecraft-server-manager"
+  RCON_PASSWORD: "rconpassword"
+  NFS_SERVER: "nfs-server.local"
+  # Ensure this path matches the mount path in the container AND the path on the NFS server
+  NFS_PATH: "/mnt/minecraft-data"
+  CLOUDFLARE_API_TOKEN: ""
+  DOMAIN_NAME: ""
+  SRVPORT: "25565"
+  WILDCARD_DOMAIN_PREFIX: "srv-mc-only"
+  USE_WILDCARD_DOMAIN: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server-manager
+  namespace: minecraft-servers
+  labels:
+    app: minecraft-server-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-server-manager
+  template:
+    metadata:
+      labels:
+        app: minecraft-server-manager
+    spec:
+      serviceAccountName: minecraft-server-manager
+      containers:
+        - name: minecraft-server-manager
+          image: minecraft-server-manager:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+          envFrom:
+            - configMapRef:
+                name: minecraft-manager-config
+            - secretRef:
+                name: minecraft-manager-secrets
+          
+          volumeMounts:
+            # Mount the NFS share to the path expected by the application
+            # The application appends '/minecraft-server-manager' to NFS_PATH
+            - name: nfs-data
+              mountPath: /mnt/minecraft-data/minecraft-server-manager
+      volumes:
+        - name: nfs-data
+          nfs:
+            # Replace with your NFS server address and path
+            # This should point to the directory containing the manager data
+            server: nfs-server.local
+            path: /mnt/minecraft-data/minecraft-server-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-server-manager
+  namespace: minecraft-servers
+spec:
+  type: NodePort
+  selector:
+    app: minecraft-server-manager
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30002

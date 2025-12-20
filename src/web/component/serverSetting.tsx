@@ -41,7 +41,8 @@ export default function ServerSetting({
     Object.fromEntries(
       FIELD_DEFINITIONS.map((field) => [
         field.key,
-        defaultSelectedFields.includes(field.key) && defaultValue
+        defaultSelectedFields.includes(field.key) &&
+        !(field.key in (defaultValue || {}))
           ? field.example
           : '',
       ]),
@@ -64,12 +65,10 @@ export default function ServerSetting({
       setSelectedFields(
         Object.entries(defaultValue)
           .map(([key, value]) => (value ? key : ''))
-          .filter(
-            (key) => !['serverSettingId', 'domain'].includes(key) && key !== '',
-          ),
+          .filter((key) => !['serverSettingId'].includes(key) && key !== ''),
       );
       setFieldValues(defaultValue as Record<string, string>);
-      previousServerSettingId.current = defaultValue.serverSettingId || '';
+      previousServerSettingId.current = defaultValue.serverSettingId!;
     }
   }, [defaultValue]);
 
@@ -156,6 +155,7 @@ export default function ServerSetting({
                         <input
                           type={def.type === 'number' ? 'number' : 'text'}
                           id={def.key}
+                          disabled={def.readonly && isToggleAble}
                           placeholder={def.example}
                           className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800 placeholder:text-gray-200/40'
                           value={fieldValues[def.key]}
@@ -173,6 +173,7 @@ export default function ServerSetting({
                           id={def.key}
                           className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'
                           value={fieldValues[def.key]}
+                          disabled={def.readonly && isToggleAble}
                           onChange={(e) =>
                             setFieldValues({
                               ...fieldValues,
@@ -190,6 +191,7 @@ export default function ServerSetting({
                           id={def.key}
                           className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'
                           value={fieldValues[def.key]}
+                          disabled={def.readonly && isToggleAble}
                           onChange={(e) =>
                             setFieldValues({
                               ...fieldValues,
@@ -211,7 +213,8 @@ export default function ServerSetting({
                       return null;
                   }
                 })(fieldDef)}
-                {defaultSelectedFields.includes(fieldKey) ? null : (
+                {defaultSelectedFields.includes(fieldKey) ||
+                (fieldDef.readonly && isToggleAble) ? null : (
                   <button
                     className='mt-2 p-1 bg-red-500 hover:bg-red-600 text-white flex flex-row items-center gap-2 rounded-md justify-center'
                     onClick={() => {

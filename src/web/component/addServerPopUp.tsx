@@ -23,14 +23,14 @@ export default function AddServerPopUp() {
   };
   return (
     <div
-      className='fixed w-full h-full top-0 left-0 bg-black/70 flex justify-center items-center z-10'
+      className='absolute w-full h-full top-0 left-0 bg-black/70 flex justify-center items-start z-10'
       onClick={() => {
         if (!isOpen) return;
         setIsOpen(false);
       }}
     >
       <div
-        className='w-2/3 flex flex-col gap-4 bg-white/80 p-4 rounded-3xl '
+        className='w-2/3 flex flex-col gap-4 bg-white/80 p-4 rounded-3xl mt-16'
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -41,7 +41,7 @@ export default function AddServerPopUp() {
             {[
               ['ServerName', serverSettingSaver.SERVER_NAME],
               ['Version', serverSettingSaver.version],
-              ['Memory Limit', serverSettingSaver.MEMORY],
+              ['Memory Limit', serverSettingSaver.memoryLimit],
               ['Type', serverSettingSaver.type],
             ].map(([name, value], index) => (
               <li

@@ -15,7 +15,8 @@ export default function ServerManagement() {
   const { serverInfo, currentSelectedServerId, setCurrentSelectedServerId } =
     useServers();
   const [currentServerSetting, setCurrentServerSetting] = useState<
-    Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> & Variables
+    Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> &
+      Variables & { serverSettingId?: string }
   >({});
   const [newServerSetting, setNewServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> & Variables
@@ -29,7 +30,7 @@ export default function ServerManagement() {
     });
 
   useEffect(() => {
-    if (serverInfo.length > 0) {
+    if (serverInfo.length > 0 && currentSelectedServerId === '') {
       setCurrentSelectedServerId(serverInfo[0]!.id);
     }
     async function fetchServerSettings() {
@@ -54,6 +55,7 @@ export default function ServerManagement() {
           type: dataValues.TYPE! as MinecraftServerType,
           SERVER_NAME: dataValues.SERVER_NAME,
           domain: dataValues.domain,
+          serverSettingId: currentSelectedServerId,
         });
       } else {
         setCurrentServerSetting({});
@@ -122,7 +124,8 @@ export default function ServerManagement() {
                     Object.keys(currentServerSetting).length > 0
                       ? {
                           ...currentServerSetting,
-                          serverSettingId: currentSelectedServerId,
+                          serverSettingId:
+                            currentServerSetting.serverSettingId || '',
                         }
                       : {
                           serverSettingId: '',

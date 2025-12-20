@@ -19,14 +19,14 @@ export class FileController {
   constructor(
     name: string,
     {
-      filter,
+      filter = defaultFilter,
       isAllowHiddenFiles = false,
       readonly = false,
-    }: {
+    }: Partial<{
       filter?: Filter;
       isAllowHiddenFiles?: boolean;
       readonly?: boolean;
-    },
+    }>,
   ) {
     this.name = name;
     this.basePath = join(NFSPath, ManagerMountPath, this.name);
@@ -314,8 +314,14 @@ export class FileControllerManager {
       const isDir = (await lstat(join(basePath, dir))).isDirectory();
       if (!isDir) continue;
       const controller = new FileController(dir, options || {});
-      FileControllerManager.registerController(dir, controller);
+      try {
+        FileControllerManager.registerController(dir, controller);
+      } catch (e) {}
     }
+  }
+
+  public static hasController(name: string): boolean {
+    return FileControllerManager.controllers.has(name);
   }
 
   public static registerController(name: string, controller: FileController) {
@@ -323,6 +329,13 @@ export class FileControllerManager {
       throw new Error(`FileController for ${name} already exists.`);
     }
     FileControllerManager.controllers.set(name, controller);
+  }
+
+  public static unregisterController(name: string) {
+    if (!FileControllerManager.controllers.has(name)) {
+      throw new Error(`FileController for ${name} does not exist.`);
+    }
+    FileControllerManager.controllers.delete(name);
   }
 
   public static getController(name: string): FileController {

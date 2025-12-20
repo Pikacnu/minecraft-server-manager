@@ -103,6 +103,9 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                 name: name,
               },
             },
+            strategy: {
+              type: 'Recreate',
+            },
             template: {
               metadata: {
                 labels: {
@@ -413,11 +416,7 @@ secret = "${VelocitySecret}"
                 },
                 {
                   name: 'MAX_MEMORY',
-                  value: `${
-                    memoryLimit
-                      ? String(memoryLimit * 1.15)
-                      : (2048 * 1.15).toFixed()
-                  }M`,
+                  value: `${memoryLimit}M`,
                 },
                 {
                   name: 'RCON_PORT',

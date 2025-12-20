@@ -8,7 +8,8 @@ import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
 
 export default function Server() {
-  const { serverInfo, setCurrentSelectedServerId } = useServers();
+  const { serverInfo, setCurrentSelectedServerId, setServerInfo } =
+    useServers();
   const { setCurrentSection } = usePage();
   const [serverSettingSaver, setServerSettingSaver] = useState({});
   const { isOpen: isOpenAddServerPopUp, setIsOpen: setIsOpenAddServerPopUp } =
@@ -124,6 +125,9 @@ export default function Server() {
                         });
                       }
                       deleteServer();
+                      setServerInfo((prev) =>
+                        prev.filter((s) => s.id !== server.id),
+                      );
                     }}
                   >
                     <Trash /> Delete

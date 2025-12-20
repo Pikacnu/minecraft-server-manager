@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type SetStateAction,
+  type Dispatch,
+} from 'react';
 
 export type ServerInfo = {
   id: string;
@@ -8,9 +15,9 @@ export type ServerInfo = {
   address: string;
   playersOnline: number;
 };
-const Page = createContext<{
+const ServerContext = createContext<{
   serverInfo: ServerInfo[];
-  setServerInfo: (info: ServerInfo[]) => void;
+  setServerInfo: Dispatch<SetStateAction<ServerInfo[]>>;
   currentSelectedServerId: string | undefined;
   setCurrentSelectedServerId: (id: string) => void;
 }>({
@@ -41,7 +48,7 @@ export const ServerProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <Page.Provider
+    <ServerContext.Provider
       value={{
         serverInfo,
         setServerInfo,
@@ -50,11 +57,11 @@ export const ServerProvider = ({ children }: { children: React.ReactNode }) => {
       }}
     >
       {children}
-    </Page.Provider>
+    </ServerContext.Provider>
   );
 };
 
-export const useServers = () => useContext(Page);
+export const useServers = () => useContext(ServerContext);
 export const getServersInfo = () => {
   const serverContext = useServers();
   return serverContext.serverInfo;

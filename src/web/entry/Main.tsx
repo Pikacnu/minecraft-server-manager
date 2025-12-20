@@ -17,7 +17,7 @@ export function App() {
   const { currentSection } = usePage();
 
   return (
-    <div className='flex min-h-screen flex-col items-center bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 overflow-hidden w-full relative'>
+    <div className='flex min-h-screen flex-col items-center bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 overflow-hidden w-full relative transform-gpu'>
       <Nav></Nav>
       <Suspense
         fallback={

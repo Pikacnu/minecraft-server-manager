@@ -1,12 +1,10 @@
 import { minecraftServerDeployment } from '@/deployment/minecraft-server';
+import { Manager } from '@/manager';
 import { Namespace } from '@/utils/config';
 import {
-  deleteService,
-  deployService,
   getConfigMapData,
-  updateConfigMap,
+  patchENVConfigMap,
   updateEnvConfigMap,
-  updateYamlConfigMap,
 } from '@/utils/k8s';
 import {
   MinecraftServerType,
@@ -31,21 +29,18 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
   try {
-    await deployService(
-      minecraftServerDeployment({
-        memoryLimit: variable.memoryLimit!,
-        version: variable.version!,
-        type: variable.type!,
-        domain: variable.domain,
-        name: variable.SERVER_NAME!.replaceAll(' ', '-').toLowerCase(),
-        Variables: Object.fromEntries(
-          Object.entries(variable).filter(
-            ([, value]) =>
-              value !== undefined && value !== null && value !== '',
-          ),
+    Manager.createServer({
+      memoryLimit: variable.memoryLimit!,
+      version: variable.version!,
+      type: variable.type!,
+      domain: variable.domain,
+      name: variable.SERVER_NAME!.replaceAll(' ', '-').toLowerCase(),
+      Variables: Object.fromEntries(
+        Object.entries(variable).filter(
+          ([, value]) => value !== undefined && value !== null && value !== '',
         ),
-      }),
-    );
+      ),
+    });
   } catch (error) {
     console.error('Failed to deploy server:', error);
     return Response.json(
@@ -67,19 +62,7 @@ export async function DELETE(request: Request): Promise<Response> {
     );
   }
   try {
-    const configMapData = await getConfigMapData(
-      Namespace,
-      `minecraft-server-env-configmap-${serverName}`,
-      'data',
-    );
-
-    await deleteService(
-      minecraftServerDeployment({
-        name: serverName,
-        type: ((configMapData?.data as Variables)?.TYPE ??
-          MinecraftServerType.Fabric) as MinecraftServerType,
-      }),
-    );
+    await Manager.deleteServer(serverName);
   } catch (error) {
     console.error('Failed to delete server:', error);
     return Response.json(
@@ -136,7 +119,6 @@ export async function PATCH(request: Request): Promise<Response> {
           .map((s) => s.trim())
           .filter((s) => s !== '')
       : [];
-    console.log(Object.keys(filteredVariables));
 
     const updatedVariables = {
       ...(configMapData?.data as Variables),
@@ -163,7 +145,7 @@ export async function PATCH(request: Request): Promise<Response> {
           : modProjects.join('\n'),
       RESOURCE_PACK: `"${filteredVariables.RESOURCE_PACK || ''}"`,
     };
-    await updateEnvConfigMap(
+    await patchENVConfigMap(
       Namespace,
       `minecraft-server-env-configmap-${serverName}`,
       updatedVariables,

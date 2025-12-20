@@ -1,20 +1,37 @@
-import { Namespace } from '@/utils/config';
+import {
+  isWildcardDomain,
+  Namespace,
+  WildCardDomainPrefix,
+} from '@/utils/config';
 import gateClient from '@/utils/gate';
 import {
   PhaseEnum,
   Watcher,
   applyYamlToConfigMap,
-  coreV1Api,
+  deleteService,
+  deployService,
   getConfigMapData,
+  getDeploymentData,
   k8sApiEndpoint,
+  patchConfigMap,
   resumeDeploymentRollout,
-  resumeGeneratedDeploymentRollout,
   stopDeploymentRollout,
-  stopGeneratedDeploymentRollout,
 } from '@/utils/k8s';
-import type { GateConfig } from '@/utils/type';
+import {
+  MinecraftServerType,
+  type GateConfig,
+  type Variables,
+} from '@/utils/type';
 import { ServerController } from './server-controller';
 import { isDevelopment } from '@/utils/config';
+import { minecraftServerDeployment } from '@/deployment/minecraft-server';
+import { FileController, FileControllerManager } from './file-manager';
+import {
+  DomainManager,
+  generateMinecraftSRVName,
+  getTopLevelDomain,
+} from './domain-manager';
+import { TaskQueue } from '@/utils/taskQueue';
 
 export enum ServerStatusEnum {
   RUNNING = 'running',
@@ -34,13 +51,16 @@ export type ServerInfo = {
 export class Manager {
   private static instance: Manager;
   private static isInitialized = false;
+
   private static serviceWatcher: Watcher;
-  //private static podWatcher: Watcher;
   private static deploymentWatcher: Watcher;
   private static gateServerWatcher: NodeJS.Timeout;
+
   private static servers: Map<string, ServerInfo> = new Map();
   private static serverStatus: Map<string, ServerStatusEnum> = new Map();
   private static serviceNameToServerName: Map<string, string> = new Map();
+
+  private static configMapTaskQueue: TaskQueue = new TaskQueue(1);
 
   private constructor() {
     Manager.init();
@@ -69,34 +89,9 @@ export class Manager {
         const serverName = labels?.name! || servicesName;
 
         console.log(`Server Deployment | ${phase}: ${serverName}`);
-        const gateConfigMap = (await getConfigMapData(
-          Namespace,
-          'gate-server-configmap',
-          'config.yml',
-          'yaml',
-        )) as GateConfig;
+
         if (phase === PhaseEnum.ADDED) {
           const domain = obj.metadata?.labels?.domain?.trim() || '';
-          if (
-            domain &&
-            !Object.keys(gateConfigMap.config.forcedHosts).includes(domain)
-          ) {
-            gateConfigMap.config.forcedHosts[domain] = [
-              ...(gateConfigMap.config.forcedHosts[domain] || []),
-              `${servicesName}.${Namespace}.svc.cluster.local:25565`,
-            ];
-          } else if (!gateConfigMap.config.try.includes(servicesName)) {
-            gateConfigMap.config.try.push(servicesName);
-          }
-
-          if (
-            !Object.keys(gateConfigMap.config.servers).includes(servicesName)
-          ) {
-            gateConfigMap.config.servers[
-              servicesName
-            ] = `${servicesName}.${Namespace}.svc.cluster.local:25565`;
-          }
-
           this.servers.set(serverName, {
             name: serverName,
             address: `${servicesName}.${Namespace}.svc.cluster.local:25565`,
@@ -105,42 +100,84 @@ export class Manager {
             nameTemplate: servicesName.replace(/service/g, '@PlaceHolder@'),
           });
           this.serviceNameToServerName.set(servicesName, serverName);
-
-          await applyYamlToConfigMap(
-            Namespace,
-            gateConfigMap,
-            'gate-server-configmap',
-            'config.yml',
-          );
         }
+
         if (phase === PhaseEnum.DELETED) {
-          const domain = metadata.labels?.domain?.trim() || '';
-          if (domain && gateConfigMap.config.forcedHosts[domain]) {
-            gateConfigMap.config.forcedHosts[domain] =
-              gateConfigMap.config.forcedHosts[domain].filter(
-                (address) =>
-                  address !==
-                  `${servicesName}.${Namespace}.svc.cluster.local:25565`,
-              );
-            if (gateConfigMap.config.forcedHosts[domain].length === 0) {
-              delete gateConfigMap.config.forcedHosts[domain];
-            }
-          } else {
-            gateConfigMap.config.try = gateConfigMap.config.try.filter(
-              (name) => name !== servicesName,
-            );
-          }
-          delete gateConfigMap.config.servers[obj.metadata!.name!];
-
           this.servers.delete(servicesName);
+        }
 
-          await applyYamlToConfigMap(
+        this.configMapTaskQueue.addTask(async () => {
+          const gateConfigMap = (await getConfigMapData(
+            Namespace,
+            'gate-server-configmap',
+            'config.yml',
+            'yaml',
+          )) as GateConfig;
+
+          if (phase === PhaseEnum.ADDED) {
+            const domain = obj.metadata?.labels?.domain?.trim() || '';
+            if (domain) {
+              const url = new URL(`http://${domain}`);
+              const topDomain = url.hostname.split('.').slice(-2).join('.');
+              const baseHostName = url.hostname
+                .split('.')
+                .slice(0, -2)
+                .join('.');
+              const domainObjName = isWildcardDomain
+                ? `${baseHostName}.${WildCardDomainPrefix}.${topDomain}.`
+                : `${domain}.`;
+              if (
+                !Object.keys(gateConfigMap.config.forcedHosts).includes(
+                  domainObjName,
+                ) ||
+                gateConfigMap.config.forcedHosts[domainObjName]!.indexOf(
+                  servicesName,
+                ) === -1
+              )
+                gateConfigMap.config.forcedHosts[domainObjName] = [
+                  ...(gateConfigMap.config.forcedHosts[domainObjName] || []),
+                  //`${servicesName}.${Namespace}.svc.cluster.local:25565`,
+                  servicesName,
+                ];
+            } else if (!gateConfigMap.config.try.includes(servicesName)) {
+              gateConfigMap.config.try.push(servicesName);
+            }
+
+            if (
+              !Object.keys(gateConfigMap.config.servers).includes(servicesName)
+            ) {
+              gateConfigMap.config.servers[
+                servicesName
+              ] = `${servicesName}.${Namespace}.svc.cluster.local:25565`;
+            }
+          }
+          if (phase === PhaseEnum.DELETED) {
+            const domain = metadata.labels?.domain?.trim() || '';
+            if (domain && gateConfigMap.config.forcedHosts[domain]) {
+              gateConfigMap.config.forcedHosts[domain] =
+                gateConfigMap.config.forcedHosts[domain].filter(
+                  (address) =>
+                    address !==
+                    `${servicesName}.${Namespace}.svc.cluster.local:25565`,
+                );
+              if (gateConfigMap.config.forcedHosts[domain].length === 0) {
+                delete gateConfigMap.config.forcedHosts[domain];
+              }
+            } else {
+              gateConfigMap.config.try = gateConfigMap.config.try.filter(
+                (name) => name !== servicesName,
+              );
+            }
+            delete gateConfigMap.config.servers[obj.metadata!.name!];
+          }
+
+          await patchConfigMap(
             Namespace,
             gateConfigMap,
             'gate-server-configmap',
             'config.yml',
           );
-        }
+        });
       },
     );
     //this.podWatcher = new Watcher();
@@ -183,6 +220,13 @@ export class Manager {
           this.serverStatus.delete(serverName);
           this.servers.delete(serverName);
         }
+        if (phase === PhaseEnum.ADDED) {
+          if (!FileControllerManager.hasController(serverName))
+            FileControllerManager.registerController(
+              serverName,
+              new FileController(serverName, {}),
+            );
+        }
 
         console.log(
           `Server Deployment | ${phase}: ${serverName}(${deploymentName}) | Replicas : ${
@@ -210,6 +254,106 @@ export class Manager {
     }, 5 * 1_000);
 
     this.isInitialized = true;
+  }
+
+  public static async cleanup(): Promise<void> {
+    if (this.serviceWatcher) {
+      this.serviceWatcher.stopWatch();
+    }
+    //if (this.podWatcher) {
+    //  this.podWatcher.stopWatch();
+    //}
+    if (this.deploymentWatcher) {
+      this.deploymentWatcher.stopWatch();
+    }
+    if (this.gateServerWatcher) {
+      clearInterval(this.gateServerWatcher);
+    }
+    this.isInitialized = false;
+  }
+
+  public static async createServer(
+    ...serverInfo: Parameters<typeof minecraftServerDeployment>
+  ): Promise<void> {
+    const deploymentManifest = minecraftServerDeployment(serverInfo[0]);
+    const serverName = serverInfo[0].name;
+    const domain = serverInfo[0].domain;
+    await deployService(deploymentManifest);
+    if (domain) {
+      try {
+        DomainManager.addRecordToDomain(
+          getTopLevelDomain(domain),
+          domain
+            .trim()
+            .split('.')
+            .filter((t) => !!t)
+            .slice(0, -2)
+            .join('.'),
+        );
+      } catch (error) {
+        console.error(
+          `Failed to add SRV record for ${serverName} with domain ${domain}:`,
+          error,
+        );
+      }
+    }
+
+    console.log(`Server ${serverName} deployment initiated.`);
+  }
+
+  public static async deleteServer(serverName: string): Promise<void> {
+    if (!this.servers.has(serverName)) {
+      throw new Error(`Server ${serverName} not found.`);
+    }
+    const server = this.servers.get(serverName);
+    if (!server) {
+      throw new Error(`Server ${serverName} not found.`);
+    }
+    const configMapData = (await getConfigMapData(
+      Namespace,
+      `minecraft-server-env-configmap-${serverName}`,
+      'data',
+    )) as {
+      data: Variables;
+    } | null;
+
+    const deployment = await getDeploymentData(
+      this.generateName(server, 'deployment'),
+      Namespace,
+    );
+
+    const domain = deployment?.metadata?.labels?.domain?.trim() || '';
+
+    if (domain && domain !== '') {
+      try {
+        DomainManager.deleteSRVRecord(
+          getTopLevelDomain(domain),
+          domain
+            .trim()
+            .split('.')
+            .filter((t) => !!t)
+            .slice(0, -2)
+            .join('.'),
+        );
+      } catch (error) {
+        console.error(
+          `Failed to delete SRV record for ${serverName} with domain ${domain}:`,
+          error,
+        );
+      }
+    }
+
+    await deleteService(
+      minecraftServerDeployment({
+        name: serverName,
+        type: (configMapData?.data?.TYPE ??
+          MinecraftServerType.Fabric) as MinecraftServerType,
+      }),
+    );
+
+    FileControllerManager.unregisterController(serverName);
+
+    console.log(`Server ${serverName} deletion initiated.`);
   }
 
   public static async restartServer(serverName: string): Promise<void> {
