@@ -1,0 +1,5 @@
+[serve.static]
+env = "BUN_PUBLIC_*"
+plugins = ["bun-plugin-tailwind"]
+[install.scopes]
+"@buf" = "https://buf.build/gen/npm/v1/"

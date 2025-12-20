@@ -1,0 +1,24 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: minecraft-dev
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 30065
+    hostPort: 25565
+    protocol: TCP
+  - containerPort: 30075
+    hostPort: 25575
+    protocol: TCP
+  extraMounts:
+  - hostPath: ./minecraft-data
+    containerPath: /var/minecraft
