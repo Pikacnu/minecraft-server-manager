@@ -25,37 +25,43 @@ export class DNSController {
   }
 
   async createSRVRecord(name: string, target: string) {
-    await this.cf.dns.records.create({
-      zone_id: this.zoneID || '',
-      type: 'SRV',
-      name,
-      data: {
-        priority: 0,
-        weight: 0,
-        port: this.srvPort,
-        target,
-      },
-      ttl: 1,
-    });
+    try {
+      await this.cf.dns.records.create({
+        zone_id: this.zoneID || '',
+        type: 'SRV',
+        name,
+        data: {
+          priority: 0,
+          weight: 0,
+          port: this.srvPort,
+          target,
+        },
+        ttl: 1,
+      });
+    } catch {}
   }
 
   async createARecord(name: string, ip: string) {
-    await this.cf.dns.records.create({
-      zone_id: this.zoneID || '',
-      type: 'A',
-      name,
-      content: ip,
-      ttl: 1,
-    });
+    try {
+      await this.cf.dns.records.create({
+        zone_id: this.zoneID || '',
+        type: 'A',
+        name,
+        content: ip,
+        ttl: 1,
+      });
+    } catch {}
   }
 
   async deleteSRVRecord(name: string) {
     const record = this.existingRecords.find((rec) => rec.name === name);
 
     if (record) {
-      await this.cf.dns.records.delete(record.id, {
-        zone_id: this.zoneID || '',
-      });
+      try {
+        await this.cf.dns.records.delete(record.id, {
+          zone_id: this.zoneID || '',
+        });
+      } catch {}
     }
   }
 
@@ -64,9 +70,11 @@ export class DNSController {
       (rec) => rec.name === name && rec.type === 'A',
     );
     if (record) {
-      await this.cf.dns.records.delete(record.id, {
-        zone_id: this.zoneID || '',
-      });
+      try {
+        await this.cf.dns.records.delete(record.id, {
+          zone_id: this.zoneID || '',
+        });
+      } catch {}
     }
   }
 

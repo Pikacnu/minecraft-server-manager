@@ -1,7 +1,7 @@
 import { ManagerMountPath, LocalMountPath } from '@/utils/config';
 import { join, relative, resolve, normalize, isAbsolute } from 'node:path';
 import { file, Glob } from 'bun';
-import { lstat, mkdir, rmdir } from 'node:fs/promises';
+import { lstat, mkdir, rmdir, exists } from 'node:fs/promises';
 
 export class FileController {
   private name: string;
@@ -46,6 +46,7 @@ export class FileController {
   }
 
   private async buildFileStructure() {
+    await mkdir(this.basePath, { recursive: true });
     this.fileStructure = {};
     const files = this.fileScanner.scan({
       cwd: this.basePath,
@@ -306,6 +307,7 @@ export class FileControllerManager {
     options?: Partial<ConstructorParameters<typeof FileController>[1]>,
   ) {
     const basePath = join(LocalMountPath, ManagerMountPath, path || '');
+    await mkdir(basePath, { recursive: true });
     const directorys = new Glob('*').scan({
       cwd: basePath,
       onlyFiles: false,
@@ -313,8 +315,11 @@ export class FileControllerManager {
     for await (const dir of directorys) {
       const isDir = (await lstat(join(basePath, dir))).isDirectory();
       if (!isDir) continue;
-      const controller = new FileController(dir, options || {});
+      if (!(await exists(join(basePath, dir)))) {
+        mkdir(join(basePath, dir), { recursive: true });
+      }
       try {
+        const controller = new FileController(dir, options || {});
         FileControllerManager.registerController(dir, controller);
       } catch (e) {}
     }

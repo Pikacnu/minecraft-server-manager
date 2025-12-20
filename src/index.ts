@@ -13,6 +13,8 @@ import {
   WildCardDomainPrefix,
   ZoneID,
 } from './utils/config';
+import { gateClient } from './utils/gate';
+import { gateDeployment } from './deployment/gate';
 const env = process.env;
 const port = env.PORT ? parseInt(env.PORT) : 3000;
 const host = env.HOST || 'localhost';
@@ -53,6 +55,10 @@ try {
       'Domain Manager setup skipped due to missing environment variables.',
     );
   }
+
+  // Initialize Gate Client
+  await deployService(gateDeployment, { log: true });
+  console.log('Gate client initialized.');
 
   // Start the web server
   const server = await webServer({

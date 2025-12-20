@@ -222,10 +222,17 @@ export class Manager {
         }
         if (phase === PhaseEnum.ADDED) {
           if (!FileControllerManager.hasController(serverName))
-            FileControllerManager.registerController(
-              serverName,
-              new FileController(serverName, {}),
-            );
+            try {
+              FileControllerManager.registerController(
+                serverName,
+                new FileController(serverName, {}),
+              );
+            } catch (error) {
+              console.error(
+                `Failed to register file controller for ${serverName}:`,
+                error,
+              );
+            }
         }
 
         console.log(
@@ -351,7 +358,14 @@ export class Manager {
       }),
     );
 
-    FileControllerManager.unregisterController(serverName);
+    try {
+      FileControllerManager.unregisterController(serverName);
+    } catch (error) {
+      console.error(
+        `Failed to unregister file controller for ${serverName}:`,
+        error,
+      );
+    }
 
     console.log(`Server ${serverName} deletion initiated.`);
   }

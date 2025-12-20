@@ -20,19 +20,34 @@ export async function rconHandler(
     });
     return;
   }
-  const connection = await RconManager.getConnection(
-    rconData.serverName,
-    serverData.address,
-    25575,
-    RCONPassword,
-  );
-  const result = await connection.send(rconData.command);
-  send({
-    type: MessageType.RCON,
-    payload: {
-      status: 'ok',
-      response: result,
-      serverName: rconData.serverName,
-    },
-  });
+  try {
+    const connection = await RconManager.getConnection(
+      rconData.serverName,
+      serverData.address.split(':')[0]!,
+      25575,
+      RCONPassword,
+    );
+    const result = await connection.send(rconData.command);
+    send({
+      type: MessageType.RCON,
+      payload: {
+        status: 'ok',
+        response: result,
+        serverName: rconData.serverName,
+      },
+    });
+  } catch (error) {
+    console.error(
+      `RCON command execution failed for server ${rconData.serverName}:`,
+      error,
+    );
+    send({
+      type: MessageType.RCON,
+      payload: {
+        status: 'error',
+        message: `Failed to execute RCON command`,
+        serverName: rconData.serverName,
+      },
+    });
+  }
 }

@@ -229,6 +229,7 @@ export async function checkResourceExists(
     if (code === 404) {
       return false;
     }
+    throw error;
   }
   return true;
 }
@@ -278,6 +279,7 @@ export async function checkGeneratedResourceExtsts(
     if (error.code === 404) {
       return false;
     }
+    throw error;
   }
   const isItemExists = resources!.items.some((item) =>
     item.metadata!.name!.startsWith(resourcePrefix),
@@ -460,16 +462,20 @@ export async function deployService(
     ]);
   } catch (error: any) {
     const { code, body } = error;
-    const bodyObj = JSON.parse(body);
-    console.error(
-      `Kubernetes API Error - Code: ${code},\nmessage: ${
-        bodyObj.message
-      },\ndetails: ${
-        typeof bodyObj.details === 'object'
-          ? JSON.stringify(bodyObj.details)
-          : `${bodyObj.details}`
-      }`,
-    );
+    if (body) {
+      const bodyObj = JSON.parse(body);
+      console.error(
+        `Kubernetes API Error - Code: ${code},\nmessage: ${
+          bodyObj.message
+        },\ndetails: ${
+          typeof bodyObj.details === 'object'
+            ? JSON.stringify(bodyObj.details)
+            : `${bodyObj.details}`
+        }`,
+      );
+    } else {
+      console.error('Failed to deploy resources:', error);
+    }
   }
   return;
 }

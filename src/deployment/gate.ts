@@ -128,7 +128,7 @@ config:
   bind: 0.0.0.0:25565
   onlineMode: true
   servers: {}
-  try: {}
+  try: []
   forwarding:
     mode: velocity
     velocitySecret: "${VelocitySecret}"

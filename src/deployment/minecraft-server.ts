@@ -526,7 +526,7 @@ secret = "${VelocitySecret}"
               apiVersion: 'v1',
               kind: 'PersistentVolume',
               metadata: {
-                name: 'minecraft-server-pv',
+                name: `minecraft-server-pv-${name}`,
                 labels: {
                   app: 'minecraft-server',
                   category: 'minecraft-server',

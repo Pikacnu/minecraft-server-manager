@@ -11,7 +11,7 @@ const transport = createConnectTransport({
   httpVersion: '1.1',
   baseUrl: isDevelopment
     ? 'http://localhost:8080' // Development Gate service URL
-    : 'http://gate-server:8080', // Production Gate service URL
+    : 'http://gate-server-service:8080', // Production Gate service URL
 });
 
 console.log('Initializing Gate client...');
@@ -28,6 +28,7 @@ try {
   console.error('Failed to initialize Gate client:', error);
   console.log('Attempting to redeploy Gate service...');
   await deployService(gateDeployment, { log: true });
+  await new Promise((resolve) => setTimeout(resolve, 20 * 1000)); // wait for 20 seconds
   gateClient = createClient(GateService, transport);
   console.log('Gate client initialized after redeployment.');
 } finally {
@@ -52,6 +53,7 @@ try {
               console.log(`Retrying Gate client method ${methodName}...`);
               return await (method as any)(...args);
             }
+            //throw error;
           }
         },
       ];
