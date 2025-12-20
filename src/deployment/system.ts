@@ -1,8 +1,7 @@
-import { Namespace, NFSPath, NFSServer } from '@/utils/config';
+import { Namespace } from '@/utils/config';
 import type { ServicesDeployments } from '@/utils/type';
-import { isDevelopment } from '@/utils/config';
 
-const CLAIM_STORAGE_SIZE = '200Gi';
+//const CLAIM_STORAGE_SIZE = '200Gi';
 
 export const SystemRequiredDeployments: ServicesDeployments = {
   Namespace: [

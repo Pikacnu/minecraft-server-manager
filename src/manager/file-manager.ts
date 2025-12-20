@@ -1,4 +1,4 @@
-import { ManagerMountPath, NFSPath } from '@/utils/config';
+import { ManagerMountPath, LocalMountPath } from '@/utils/config';
 import { join, relative, resolve, normalize, isAbsolute } from 'node:path';
 import { file, Glob } from 'bun';
 import { lstat, mkdir, rmdir } from 'node:fs/promises';
@@ -29,7 +29,7 @@ export class FileController {
     }>,
   ) {
     this.name = name;
-    this.basePath = join(NFSPath, ManagerMountPath, this.name);
+    this.basePath = join(LocalMountPath, ManagerMountPath, this.name);
     this.fileScanner = new Glob('**/*');
     this.initialize();
     if (filter) {
@@ -305,7 +305,7 @@ export class FileControllerManager {
     path?: string,
     options?: Partial<ConstructorParameters<typeof FileController>[1]>,
   ) {
-    const basePath = join(NFSPath, ManagerMountPath, path || '');
+    const basePath = join(LocalMountPath, ManagerMountPath, path || '');
     const directorys = new Glob('*').scan({
       cwd: basePath,
       onlyFiles: false,

@@ -1,9 +1,10 @@
 import {
   Namespace,
-  NFSPath,
+  NFSRootPath,
   NFSServer,
   RCONPassword,
   VelocitySecret,
+  ManagerMountPath,
 } from '@/utils/config';
 import type {
   MinecraftServerDeploymentsGeneratorArguments,
@@ -539,7 +540,7 @@ secret = "${VelocitySecret}"
                 persistentVolumeReclaimPolicy: 'Retain',
                 storageClassName: 'minecraft-server-storage-class',
                 nfs: {
-                  path: NFSPath + `/${name}`,
+                  path: `${NFSRootPath}/${ManagerMountPath}/${name}`,
                   server: NFSServer,
                 },
               },

@@ -2,7 +2,7 @@ FROM oven/bun:latest AS base
 WORKDIR /app
 
 # Install dependencies
-COPY package.json bun.lockb* ./
+COPY package.json bun.lockb* bunfig.toml ./
 RUN bun install --frozen-lockfile
 
 # Copy source code

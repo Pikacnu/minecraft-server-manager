@@ -5,9 +5,11 @@ export const AppName = process.env.APP_NAME || 'minecraft-server-manager';
 export const VelocitySecret = process.env.VELOCITY_SECRET || 'my-secret-123';
 export const RCONPassword = process.env.RCON_PASSWORD || 'rconpassword';
 export const NFSServer = process.env.NFS_SERVER || 'nfs-server.local';
-export const NFSPath =
-  process.env.NFS_PATH && process.env.NFS_PATH !== ''
-    ? `${process.env.NFS_PATH}/minecraft-server-manager`
+export const NFSRootPath =
+  process.env.NFS_ROOT_PATH || '/mnt/nfs/minecraft-server-data';
+export const LocalMountPath =
+  process.env.LOCAL_MOUNT_PATH && !isDevelopment
+    ? process.env.LOCAL_MOUNT_PATH
     : './minecraft-data';
 export const ManagerMountPath = 'data';
 export const CloudflareAPIToken = process.env.CLOUDFLARE_API_TOKEN || '';

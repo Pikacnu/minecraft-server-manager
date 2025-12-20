@@ -15,10 +15,12 @@ export type WebServerArguments = Partial<
 >;
 
 export const webServer = async (args?: WebServerArguments) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const server = serve({
     routes: {
-      // Serve index.html for all unmatched routes.
-      '/': index,
+      // Serve index.html for all unmatched routes in development.
+      ...(isProduction ? {} : { '/': index }),
       '/api/server-info': serverInfo,
       '/api/server-manage': serverManage,
       '/api/server-instance': serverInstance,
@@ -37,6 +39,23 @@ export const webServer = async (args?: WebServerArguments) => {
           return;
         }
         return new Response(`426 Upgrade Required`, { status: 426 });
+      }
+
+      if (isProduction) {
+        // Serve static files from dist
+        let filePath = pathname;
+        if (filePath === '/') {
+          filePath = '/index.html';
+        }
+        const staticFile = file(`dist${filePath}`);
+        if (await staticFile.exists()) {
+          return new Response(staticFile);
+        }
+
+        // SPA fallback for non-API routes
+        if (!pathname.startsWith('/api/')) {
+          return new Response(file('dist/index.html'));
+        }
       }
 
       return new Response(`404 Not Found`, { status: 404 });
