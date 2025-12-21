@@ -3,6 +3,7 @@ import { Manager } from '@/manager';
 import { Namespace } from '@/utils/config';
 import {
   getConfigMapData,
+  patchDeployment,
   patchENVConfigMap,
   updateEnvConfigMap,
 } from '@/utils/k8s';
@@ -127,8 +128,8 @@ export async function PATCH(request: Request): Promise<Response> {
       VERSION: filteredVariables.version,
       MAX_MEMORY: `${
         filteredVariables.memoryLimit
-          ? String(filteredVariables.memoryLimit)
-          : (2048 * 1.15).toFixed()
+          ? `${String(filteredVariables.memoryLimit)}`
+          : '2048'
       }M`,
       MODRINTH_PROJECTS:
         variables.TYPE === MinecraftServerType.Fabric &&
@@ -150,6 +151,41 @@ export async function PATCH(request: Request): Promise<Response> {
       `minecraft-server-env-configmap-${serverName}`,
       updatedVariables,
     );
+    // update deployment if memoryLimit or cpu changed
+    if (filteredVariables.memoryLimit) {
+      await patchDeployment(
+        Namespace,
+        `minecraft-server-deployment-${serverName}`,
+        [
+          {
+            op: 'replace',
+            path: '/spec/template/spec/containers/0/resources/limits/memory',
+            value: `${(
+              Number(filteredVariables.memoryLimit) * 1.15
+            ).toFixed()}Mi`,
+          },
+          {
+            op: 'replace',
+            path: '/spec/template/spec/containers/0/resources/requests/memory',
+            value: `${Number(filteredVariables.memoryLimit).toFixed()}Mi`,
+          },
+          ...(filteredVariables.cpu !== undefined
+            ? [
+                {
+                  op: 'replace' as const,
+                  path: '/spec/template/spec/containers/0/resources/limits/cpu',
+                  value: String(filteredVariables.cpu),
+                },
+                {
+                  op: 'replace' as const,
+                  path: '/spec/template/spec/containers/0/resources/requests/cpu',
+                  value: String(filteredVariables.cpu),
+                },
+              ]
+            : []),
+        ],
+      );
+    }
   } catch (error) {
     console.error('Failed to update server variables:', error);
     return Response.json(

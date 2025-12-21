@@ -179,6 +179,26 @@ export class Watcher {
   }
 }
 
+function k8sErrorHandler(error: any, fields?: string[]) {
+  const { code, body } = error;
+  if (body && typeof body === 'string') {
+    try {
+      const bodyObj = JSON.parse(body);
+      console.error(
+        `Kubernetes API Error - Code: ${code},\n${Object.entries(bodyObj)
+          .filter(([key, value]) => value !== undefined && value !== null)
+          .filter(([key]) => (fields ? fields.includes(key) : true))
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n')}`,
+      );
+    } catch (parseError) {}
+  } else if (code && !body) {
+    console.error(`Kubernetes API Error - Code: ${code}`);
+  } else if (!code && !body) {
+    console.error('Unknown Kubernetes API Error:', error);
+  }
+}
+
 export async function checkResourceExists(
   namespace = Namespace,
   resourceType: k8sApiEndpoint,
@@ -225,11 +245,8 @@ export async function checkResourceExists(
     }
     await searchFn;
   } catch (error: any) {
-    const { code, body } = error;
-    if (code === 404) {
-      return false;
-    }
-    throw error;
+    k8sErrorHandler(error);
+    if (error.code === 404) return false;
   }
   return true;
 }
@@ -276,16 +293,28 @@ export async function checkGeneratedResourceExtsts(
         throw new Error(`Unsupported resource type: ${resourceType}`);
     }
   } catch (error: any) {
-    if (error.code === 404) {
-      return false;
-    }
-    throw error;
+    if (error.code === 404) return false;
+    k8sErrorHandler(error);
   }
   const isItemExists = resources!.items.some((item) =>
     item.metadata!.name!.startsWith(resourcePrefix),
   );
   if (!isItemExists) return false;
   return true;
+}
+
+async function PromiseResolver(
+  promiseArray: Promise<unknown>[],
+): Promise<[boolean, Error | unknown][]> {
+  return await Promise.all(
+    promiseArray.map(async (p) => {
+      try {
+        return [true, await p];
+      } catch (error: unknown) {
+        return [false, error];
+      }
+    }),
+  );
 }
 
 export async function deployService(
@@ -451,7 +480,7 @@ export async function deployService(
   });
 
   try {
-    await Promise.all([
+    const result = await PromiseResolver([
       ...(NamespacePromise || []),
       ...(PVsPromises || []),
       ...(PVCsPromises || []),
@@ -460,22 +489,14 @@ export async function deployService(
       ...(ServicesPromises || []),
       ...(DeploymentsPromises || []),
     ]);
-  } catch (error: any) {
-    const { code, body } = error;
-    if (body) {
-      const bodyObj = JSON.parse(body);
-      console.error(
-        `Kubernetes API Error - Code: ${code},\nmessage: ${
-          bodyObj.message
-        },\ndetails: ${
-          typeof bodyObj.details === 'object'
-            ? JSON.stringify(bodyObj.details)
-            : `${bodyObj.details}`
-        }`,
-      );
-    } else {
-      console.error('Failed to deploy resources:', error);
+    if (log) {
+      result.forEach(([success, res]) => {
+        if (success) return;
+        console.error('Failed to deploy resource:', res);
+      });
     }
+  } catch (error: any) {
+    k8sErrorHandler(error, ['message', 'details']);
   }
   return;
 }
@@ -528,7 +549,7 @@ export async function deleteService(deploymentData: ServicesDeployments) {
   });
 
   try {
-    await Promise.all([
+    const result = await PromiseResolver([
       ...(DeploymentsPromises || []),
       ...(PVCsPromises || []),
       ...(PVsPromises || []),
@@ -537,8 +558,12 @@ export async function deleteService(deploymentData: ServicesDeployments) {
       ...(ServicesPromises || []),
       ...(NamespacePromises || []),
     ]);
+    result.forEach(([success, res]) => {
+      if (success) return;
+      console.error('Failed to delete resource:', res);
+    });
   } catch (error: any) {
-    console.error('Failed to delete resources:', error);
+    k8sErrorHandler(error, ['message', 'details']);
   }
 }
 
@@ -952,6 +977,31 @@ export async function patchConfigMap(
     });
   } catch (err) {
     console.error('Patch failed:', err);
+    throw err;
+  }
+}
+
+export async function patchDeployment(
+  namespace: string,
+  deploymentName: string,
+  patchData: {
+    op: 'replace' | 'add' | 'remove';
+    path: string;
+    value: any;
+  }[],
+) {
+  const options = {
+    headers: { 'Content-type': 'application/merge-patch+json' },
+  };
+  try {
+    await appsV1Api.patchNamespacedDeployment({
+      name: deploymentName,
+      namespace,
+      body: patchData,
+      ...options,
+    });
+  } catch (err) {
+    console.error('Patch deployment failed:', err);
     throw err;
   }
 }

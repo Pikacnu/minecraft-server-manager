@@ -1,5 +1,15 @@
 import { DirectoryType, type DirectoryStructure } from '@/utils/type';
-import { Folder, File, CirclePlus } from 'lucide-react';
+import {
+  Folder,
+  File,
+  CirclePlus,
+  Upload,
+  Pencil,
+  Download,
+  Trash2,
+  PackageOpen,
+  FolderArchive,
+} from 'lucide-react';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
 
@@ -16,6 +26,13 @@ export default function DirectoryDisplay({
   handleFileRead,
   handleCreate,
   handleDelete,
+  handleRename,
+  handleUpload,
+  handleDownload,
+  selectedFiles,
+  onFileSelect,
+  onCompress,
+  onUncompress,
 }: {
   fileStructure: DirectoryStructure;
   currentPath: string[];
@@ -28,9 +45,14 @@ export default function DirectoryDisplay({
     type: DirectoryType,
     recursive: boolean,
   ) => Promise<boolean>;
+  handleRename: (oldPath: string, newPath: string) => Promise<void>;
+  handleUpload: (path: string, file: File) => Promise<void>;
+  handleDownload: (path: string, fileName: string) => Promise<void>;
+  selectedFiles: string[];
+  onFileSelect: (fileName: string) => void;
+  onCompress: (path: string, files: string[]) => void;
+  onUncompress: (path: string, zipFile: string) => void;
 }) {
-  const [currentFileStructure, setcurrentFileStructure] =
-    useState<DirectoryStructure>(fileStructure);
   const [path, setPath] = useState<string[]>(currentPath);
   const [isOpenFile, setIsOpenFile] = useState<boolean>(false);
   const [fileContent, setFileContent] = useState<string>('');
@@ -41,13 +63,16 @@ export default function DirectoryDisplay({
   const [currentCreatingType, setCurrentCreatingType] = useState<DirectoryType>(
     DirectoryType.File,
   );
+  const [isRenaming, setIsRenaming] = useState<string | null>(null);
 
   const openFilePath = useRef<string>('');
   const fileData = useRef('');
   const newNameRef = useRef<HTMLInputElement>(null);
+  const renameRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentDirectory, setCurrentDirectory] = useMemo(() => {
-    let dir = currentFileStructure;
+    let dir = fileStructure;
     for (const segment of path) {
       if (
         dir.type !== DirectoryType.Directory ||
@@ -65,7 +90,7 @@ export default function DirectoryDisplay({
       }
     }
     return [dir, setPath] as const;
-  }, [currentFileStructure, path]);
+  }, [fileStructure, path]);
 
   const handleNavigate = (name: string) => {
     const newPath = [...path, name];
@@ -73,53 +98,20 @@ export default function DirectoryDisplay({
     onNavigate(newPath);
   };
 
-  const handleNewFile = (path: string) => {
-    handleCreate(`${path}`, DirectoryType.File);
-  };
-
-  const handleNewFolder = (path: string) => {
-    handleCreate(`${path}`, DirectoryType.Directory);
-  };
-
   const handleChangeFileContent = (content: string) => {
     handleFileChange(`${openFilePath.current}`, content);
     setFileContent('');
   };
 
-  const handleDeleteFile = async (name: string): Promise<boolean> => {
-    try {
-      const success = await handleDelete(
-        `${[...path, name].join('/')}`,
-        DirectoryType.File,
-        false,
-      );
-      return success;
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      return false;
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleUpload(`${[...path, file.name].join('/')}`, file);
     }
   };
-
-  const handleDeleteFolder = async (name: string): Promise<boolean> => {
-    try {
-      const success = await handleDelete(
-        `${[...path, name].join('/')}`,
-        DirectoryType.Directory,
-        false,
-      );
-      return success;
-    } catch (error) {
-      console.error('Error deleting folder:', error);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    setcurrentFileStructure(fileStructure);
-  }, [fileStructure]);
 
   return (
-    <div className='p-4 bg-gray-100 dark:bg-gray-800 rounded-lg h-full overflow-y-auto'>
+    <div className='p-4 bg-gray-100 dark:bg-gray-800 rounded-lg h-full'>
       {isOpenFile && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
           <div className='bg-white dark:bg-gray-900 rounded-lg w-3/4 h-3/4 p-4 flex flex-col'>
@@ -190,51 +182,10 @@ export default function DirectoryDisplay({
                 if (!newName || newName.value.trim() === '') {
                   return;
                 }
-                switch (currentCreatingType) {
-                  case DirectoryType.File:
-                    handleNewFile(`${[...path, newName.value].join('/')}`);
-                    break;
-                  case DirectoryType.Directory:
-                    handleNewFolder(`${[...path, newName.value].join('/')}`);
-                    break;
-                  default:
-                    break;
-                }
-                setcurrentFileStructure((prev) => {
-                  const newItem: DirectoryStructure = {
-                    name: newName.value,
-                    type: currentCreatingType,
-                  };
-
-                  const updateStructure = (
-                    root: DirectoryStructure,
-                    p: string[],
-                  ): DirectoryStructure => {
-                    if (p.length === 0) {
-                      return {
-                        ...root,
-                        children: root.children
-                          ? [...root.children, newItem]
-                          : [newItem],
-                      };
-                    }
-                    const [head, ...tail] = p;
-                    return {
-                      ...root,
-                      children: root.children?.map((child) => {
-                        if (
-                          child.name === head &&
-                          child.type === DirectoryType.Directory
-                        ) {
-                          return updateStructure(child, tail);
-                        }
-                        return child;
-                      }),
-                    };
-                  };
-
-                  return updateStructure(prev, path);
-                });
+                handleCreate(
+                  `${[...path, newName.value].join('/')}`,
+                  currentCreatingType,
+                );
               }}
             >
               Create
@@ -242,8 +193,8 @@ export default function DirectoryDisplay({
           </div>
         </div>
       )}
-      <div className='mb-4 flex select-none flex-row justify-between'>
-        <p className='flex flex-row gap-2'>
+      <div className='mb-4 flex select-none flex-row justify-between '>
+        <p className='flex flex-row gap-2 overflow-x-auto'>
           <span
             className='text-blue-600 dark:text-blue-400 cursor-pointer'
             onClick={() => {
@@ -268,42 +219,80 @@ export default function DirectoryDisplay({
             </span>
           ))}
         </p>
-        <div
-          className='flex flex-col relative'
-          onClick={() => {
-            setIsCreating(!isCreating);
-            setCreatingState(FileCreatingState.None);
-          }}
-        >
-          <button className='flex flex-row gap-2'>
-            <CirclePlus /> Add File/Folder
-          </button>
-          {isCreating && (
-            <div className='absolute top-full right-0 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-1 mt-2 z-10'>
-              {['File', 'Folder'].map((type) => (
+        <div className='flex flex-row gap-2'>
+          <div
+            className='flex flex-col relative'
+            onClick={() => {
+              setIsCreating(!isCreating);
+              setCreatingState(FileCreatingState.None);
+            }}
+          >
+            <button className='flex flex-row gap-2'>
+              <CirclePlus /> New
+            </button>
+            {isCreating && (
+              <div className='absolute top-full right-0 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-1 mt-2 z-10'>
+                {['File', 'Folder'].map((type) => (
+                  <button
+                    key={type}
+                    className='block w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCreating(false);
+                      setCreatingState(FileCreatingState.Naming);
+                      setCurrentCreatingType(
+                        type === 'File'
+                          ? DirectoryType.File
+                          : DirectoryType.Directory,
+                      );
+                      console.log('Creating new', type);
+                    }}
+                  >
+                    New {type}
+                  </button>
+                ))}
                 <button
-                  key={type}
-                  className='block w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg'
+                  className='w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg flex flex-row items-center gap-2'
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsCreating(false);
-                    setCreatingState(FileCreatingState.Naming);
-                    setCurrentCreatingType(
-                      type === 'File'
-                        ? DirectoryType.File
-                        : DirectoryType.Directory,
-                    );
-                    console.log('Creating new', type);
+                    fileInputRef.current?.click();
                   }}
                 >
-                  New {type}
+                  <Upload size={16} /> Upload File
                 </button>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+          <input
+            type='file'
+            ref={fileInputRef}
+            className='hidden'
+            onChange={onFileChange}
+          />
+          <div className='flex gap-2'>
+            <button
+              onClick={() => onCompress(path.join('/'), selectedFiles)}
+              disabled={selectedFiles.length === 0}
+            >
+              <FolderArchive />
+            </button>
+            <button
+              onClick={() => {
+                if (selectedFiles.length === 1) {
+                  onUncompress(path.join('/'), selectedFiles[0]!);
+                } else {
+                  alert('Please select exactly one zip file to uncompress.');
+                }
+              }}
+              disabled={selectedFiles.length !== 1}
+            >
+              <PackageOpen />
+            </button>
+          </div>
         </div>
       </div>
-      <ul>
+      <ul className=' overflow-y-auto h-full'>
         <li>
           <span
             className='mb-2 cursor-pointer hover:underline flex flex-row items-center gap-2 select-none'
@@ -323,25 +312,36 @@ export default function DirectoryDisplay({
             <li
               key={item.name}
               className='mb-2 cursor-pointer hover:underline flex flex-row items-center gap-2 select-none'
-              onClick={() => {
-                if (item.type === DirectoryType.Directory) {
-                  handleNavigate(item.name);
-                } else if (item.type === DirectoryType.File) {
-                  setIsOpenFile(true);
-                  //setFileContent(item.file?.content || '');
-                  openFilePath.current = `${[...path, item.name].join('/')}`;
-                  //setFileContent('Loading...');
-                  handleFileRead(`${[...path, item.name].join('/')}`).then(
-                    (content) => {
-                      setFileContent(content);
-                      fileData.current = content;
-                    },
-                  );
-                }
-              }}
             >
-              <div className='flex flex-row justify-between w-full *:flex *:flex-row *:items-center *:gap-2 h-full transform-gpu'>
-                <span>
+              <input
+                type='checkbox'
+                checked={selectedFiles.includes(item.name)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onFileSelect(item.name);
+                }}
+                className='w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+              />
+              <div
+                className='flex flex-row justify-between w-full *:flex *:flex-row *:items-center *:gap-2 h-full transform-gpu'
+                onClick={() => {
+                  if (item.type === DirectoryType.Directory) {
+                    handleNavigate(item.name);
+                  } else if (item.type === DirectoryType.File) {
+                    setIsOpenFile(true);
+                    //setFileContent(item.file?.content || '');
+                    openFilePath.current = `${[...path, item.name].join('/')}`;
+                    //setFileContent('Loading...');
+                    handleFileRead(`${[...path, item.name].join('/')}`).then(
+                      (content) => {
+                        setFileContent(content);
+                        fileData.current = content;
+                      },
+                    );
+                  }
+                }}
+              >
+                <span className='flex flex-row items-center grow gap-2'>
                   {item.type === DirectoryType.Directory ? (
                     <Folder
                       scale={1}
@@ -353,7 +353,33 @@ export default function DirectoryDisplay({
                       className='text-green-500'
                     />
                   )}
-                  {item.name}
+                  {isRenaming === item.name ? (
+                    <input
+                      ref={renameRef}
+                      type='text'
+                      defaultValue={item.name}
+                      className='bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1 grow w-full'
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const newName = renameRef.current?.value;
+                          if (newName && newName !== item.name) {
+                            handleRename(
+                              `${[...path, item.name].join('/')}`,
+                              `${[...path, newName].join('/')}`,
+                            );
+                          }
+                          setIsRenaming(null);
+                        } else if (e.key === 'Escape') {
+                          setIsRenaming(null);
+                        }
+                      }}
+                      onBlur={() => setIsRenaming(null)}
+                      autoFocus
+                    />
+                  ) : (
+                    item.name
+                  )}
                 </span>
                 <p className='flex flex-row gap-2 text-gray-500 text-sm'>
                   <span>
@@ -363,50 +389,47 @@ export default function DirectoryDisplay({
                       ? `${item.children ? item.children.length : 0} items`
                       : ''}
                   </span>
-                  <button>
-                    <span
-                      className='text-red-500 hover:text-red-700'
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRenaming(item.name);
+                    }}
+                  >
+                    <Pencil
+                      size={16}
+                      className='text-blue-500 hover:text-blue-700'
+                    />
+                  </button>
+                  {item.type === DirectoryType.File && (
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        (item.type === DirectoryType.Directory
-                          ? handleDeleteFolder(item.name)
-                          : handleDeleteFile(item.name)
-                        ).then((success) => {
-                          console.log('Delete', item.name, 'success:', success);
-                          if (!success) return;
-                          const dir = currentDirectory.children?.filter(
-                            (child) => child.name !== item.name,
-                          );
-                          const updateStructure = (
-                            root: DirectoryStructure,
-                            p: string[],
-                          ): DirectoryStructure => {
-                            if (p.length === 0) {
-                              return { ...root, children: dir };
-                            }
-                            const [head, ...tail] = p;
-                            return {
-                              ...root,
-                              children: root.children?.map((child) => {
-                                if (
-                                  child.name === head &&
-                                  child.type === DirectoryType.Directory
-                                ) {
-                                  return updateStructure(child, tail);
-                                }
-                                return child;
-                              }),
-                            };
-                          };
-
-                          setcurrentFileStructure(
-                            updateStructure(currentFileStructure, path),
-                          );
-                        });
+                        handleDownload(
+                          `${[...path, item.name].join('/')}`,
+                          item.name,
+                        );
                       }}
                     >
-                      Delete
-                    </span>
+                      <Download
+                        size={16}
+                        className='text-green-500 hover:text-green-700'
+                      />
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(
+                        `${[...path, item.name].join('/')}`,
+                        item.type,
+                        false,
+                      );
+                    }}
+                  >
+                    <Trash2
+                      size={16}
+                      className='text-red-500 hover:text-red-700'
+                    />
                   </button>
                 </p>
               </div>

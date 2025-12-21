@@ -38,7 +38,9 @@ export class DNSController {
         },
         ttl: 1,
       });
-    } catch {}
+    } catch {
+      throw new Error(`Failed to create SRV record: ${name}`);
+    }
   }
 
   async createARecord(name: string, ip: string) {
@@ -50,7 +52,9 @@ export class DNSController {
         content: ip,
         ttl: 1,
       });
-    } catch {}
+    } catch {
+      throw new Error(`Failed to create A record: ${name}`);
+    }
   }
 
   async deleteSRVRecord(name: string) {
@@ -143,27 +147,45 @@ export class DomainManager {
 
     if (this.isWildcardDomain) {
       if (!dnsController.isARecordExists(DomainManager.wildcardPrefix)) {
-        await dnsController.createARecord(
-          `*.${DomainManager.wildcardPrefix}`,
-          DomainManager.proxyServerIP,
-        );
+        try {
+          await dnsController.createARecord(
+            `*.${DomainManager.wildcardPrefix}`,
+            DomainManager.proxyServerIP,
+          );
+        } catch {
+          console.error(
+            `Failed to create A record: *.${DomainManager.wildcardPrefix}`,
+          );
+        }
       }
     } else {
-      await dnsController.createARecord(name, DomainManager.proxyServerIP);
+      try {
+        await dnsController.createARecord(name, DomainManager.proxyServerIP);
+      } catch {
+        console.error(`Failed to create A record: ${name}`);
+      }
     }
 
     const srvName = generateMinecraftSRVName(name);
     if (this.isWildcardDomain) {
-      if (!dnsController.isSRVRecordExists(srvName))
-        await dnsController.createSRVRecord(
-          srvName,
-          `${name}.${this.wildcardPrefix}.${domainName}`,
-        );
+      if (!dnsController.isSRVRecordExists(srvName)) {
+        try {
+          await dnsController.createSRVRecord(
+            srvName,
+            `${name}.${this.wildcardPrefix}.${domainName}`,
+          );
+        } catch {
+          console.error(`Failed to create SRV record: ${srvName}`);
+        }
+      }
     } else {
       if (!dnsController.isSRVRecordExists(srvName))
-        await dnsController.createSRVRecord(srvName, `${name}.${domainName}`);
+        try {
+          await dnsController.createSRVRecord(srvName, `${name}.${domainName}`);
+        } catch {
+          console.error(`Failed to create SRV record: ${srvName}`);
+        }
     }
-
     return;
   }
 

@@ -12,6 +12,7 @@ const transport = createConnectTransport({
   baseUrl: isDevelopment
     ? 'http://localhost:8080' // Development Gate service URL
     : 'http://gate-server-service:8080', // Production Gate service URL
+  defaultTimeoutMs: 30 * 1000,
 });
 
 console.log('Initializing Gate client...');
@@ -40,6 +41,13 @@ try {
           try {
             return await (method as any)(...args);
           } catch (error: any) {
+            const isTimeout =
+              error.name === 'TimeoutError' ||
+              error.message?.includes('timed out');
+            if (isTimeout) {
+              console.warn(`Method ${methodName} 逾時，正在檢查服務狀態...`);
+              return;
+            }
             console.error(`Gate client method ${methodName} failed:`, error);
             const deployment = gateDeployment.Deployments![0]!;
             const isDeployed = await checkResourceExists(
@@ -53,7 +61,10 @@ try {
               console.log(`Retrying Gate client method ${methodName}...`);
               return await (method as any)(...args);
             }
-            //throw error;
+            console.error(
+              `Gate service is running, but method ${methodName} failed again.`,
+            );
+            throw error;
           }
         },
       ];

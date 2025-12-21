@@ -38,6 +38,9 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
       throw new Error('CPU limit must be at least 1000 millicores (1 core)');
     }
   }
+  if (memoryLimit < 2048) {
+    throw new Error('Memory limit must be at least 2048 Mi (2 Gi)');
+  }
 
   return {
     Services: [
@@ -236,8 +239,8 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                       },
                     },
                     startupProbe: {
-                      tcpSocket: {
-                        port: 25565,
+                      exec: {
+                        command: ['mc-health'],
                       },
                       initialDelaySeconds: 30,
                       periodSeconds: 10,
@@ -246,18 +249,18 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                     },
                     // Liveness Probe: Check if server is still responsive
                     livenessProbe: {
-                      tcpSocket: {
-                        port: 25565,
+                      exec: {
+                        command: ['mc-health'],
                       },
-                      initialDelaySeconds: 60,
+                      initialDelaySeconds: 120,
                       periodSeconds: 30,
                       timeoutSeconds: 5,
-                      failureThreshold: 3,
+                      failureThreshold: 5,
                     },
                     // Readiness Probe: Check if server is accepting connections
                     readinessProbe: {
-                      tcpSocket: {
-                        port: 25565,
+                      exec: {
+                        command: ['mc-health', '--ready'],
                       },
                       initialDelaySeconds: 45,
                       periodSeconds: 15,
@@ -348,7 +351,7 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                 },
                 data: {
                   'paper-global.yml': `
-                proxies:
+proxies:
   bungee-cord:
     online-mode: true
   proxy-protocol: false

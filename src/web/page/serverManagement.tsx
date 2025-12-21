@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useOptimistic, useTransition } from 'react';
 import { useServers } from '../contexts/servers';
 import ServerSetting from './../component/serverSetting';
 import { Send } from 'lucide-react';
@@ -14,6 +14,7 @@ import DirectoryDisplay from '../component/directoryDisplay';
 export default function ServerManagement() {
   const { serverInfo, currentSelectedServerId, setCurrentSelectedServerId } =
     useServers();
+  const [isPending, startTransition] = useTransition();
   const [currentServerSetting, setCurrentServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> &
       Variables & { serverSettingId?: string }
@@ -28,6 +29,95 @@ export default function ServerManagement() {
       type: DirectoryType.Directory,
       children: [],
     });
+
+  const [optimisticFileStructure, addOptimisticFileStructure] = useOptimistic(
+    currentFileStructure,
+    (state, action: { type: string; payload: any }) => {
+      const updateNode = (
+        node: DirectoryStructure,
+        pathParts: string[],
+        updateFn: (n: DirectoryStructure) => DirectoryStructure,
+      ): DirectoryStructure => {
+        if (pathParts.length === 0) return updateFn(node);
+        const [head, ...tail] = pathParts;
+        return {
+          ...node,
+          children: node.children?.map((child) =>
+            child.name === head ? updateNode(child, tail, updateFn) : child,
+          ),
+        };
+      };
+
+      switch (action.type) {
+        case 'create': {
+          const { path, type } = action.payload;
+          const parts = path.split('/').filter(Boolean);
+          const name = parts.pop();
+          return updateNode(state, parts, (node) => ({
+            ...node,
+            children: [
+              ...(node.children || []),
+              {
+                name: name!,
+                type,
+                children: type === DirectoryType.Directory ? [] : undefined,
+              },
+            ],
+          }));
+        }
+        case 'delete': {
+          const { path } = action.payload;
+          const parts = path.split('/').filter(Boolean);
+          const name = parts.pop();
+          return updateNode(state, parts, (node) => ({
+            ...node,
+            children: node.children?.filter((child) => child.name !== name),
+          }));
+        }
+        case 'rename': {
+          const { oldPath, newPath } = action.payload;
+          const oldParts = oldPath.split('/').filter(Boolean);
+          const oldName = oldParts.pop();
+          const newName = newPath.split('/').filter(Boolean).pop();
+          return updateNode(state, oldParts, (node) => ({
+            ...node,
+            children: node.children?.map((child) =>
+              child.name === oldName ? { ...child, name: newName! } : child,
+            ),
+          }));
+        }
+        default:
+          return state;
+      }
+    },
+  );
+
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+
+  const fetchFileStructure = async () => {
+    if (currentSelectedServerId === '') return;
+    const response = await fetch(
+      `/api/file-system?name=${currentSelectedServerId}&type=structure`,
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        setCurrentFileStructure(data.data);
+      } else {
+        setCurrentFileStructure({
+          name: '/',
+          type: DirectoryType.Directory,
+          children: [],
+        });
+      }
+    } else {
+      setCurrentFileStructure({
+        name: '/',
+        type: DirectoryType.Directory,
+        children: [],
+      });
+    }
+  };
 
   useEffect(() => {
     if (serverInfo.length > 0 && currentSelectedServerId === '') {
@@ -61,36 +151,13 @@ export default function ServerManagement() {
         setCurrentServerSetting({});
       }
     }
-    async function fetchFileStructure() {
-      const response = await fetch(
-        `/api/file-system?name=${currentSelectedServerId}&type=structure`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setCurrentFileStructure(data.data);
-        } else {
-          setCurrentFileStructure({
-            name: '/',
-            type: DirectoryType.Directory,
-            children: [],
-          });
-        }
-      } else {
-        setCurrentFileStructure({
-          name: '/',
-          type: DirectoryType.Directory,
-          children: [],
-        });
-      }
-    }
 
     fetchServerSettings();
     fetchFileStructure();
   }, [currentSelectedServerId]);
 
   return (
-    <div className='flex flex-col w-full h-full p-4 grow'>
+    <div className='flex flex-col w-full p-4 grow relative  overflow-y-auto'>
       <select
         className=' bg-gray-400/80 p-2 rounded-lg'
         value={currentSelectedServerId}
@@ -107,16 +174,16 @@ export default function ServerManagement() {
         ))}
       </select>
       <hr className='my-4 border-gray-300' />
-      <div className='flex flex-col grow h-full relative'>
+      <div className='flex flex-col grow relative'>
         {currentSelectedServerId === '' ? (
           <div className='text-gray-500'>No server selected.</div>
         ) : (
-          <>
+          <div className='flex flex-col grow relative'>
             <div className='text-gray-700 flex'>
               Management options for server ID: {currentSelectedServerId}
             </div>
-            <div className='grid grid-cols-2 gap-4 h-full mt-4 grow'>
-              <div className='flex flex-col grow overflow-y-auto overflow-x-hidden h-full relative'>
+            <div className='grid grid-cols-2 gap-4 mt-4 relative grow'>
+              <div className='flex flex-col grow overflow-x-hidden relative'>
                 <ServerSetting
                   isToggleAble={false}
                   open={true}
@@ -157,8 +224,52 @@ export default function ServerManagement() {
               </div>
 
               <DirectoryDisplay
-                fileStructure={currentFileStructure}
+                fileStructure={optimisticFileStructure}
                 currentPath={[]}
+                selectedFiles={selectedFiles}
+                onFileSelect={(fileName) => {
+                  setSelectedFiles((prev) =>
+                    prev.includes(fileName)
+                      ? prev.filter((f) => f !== fileName)
+                      : [...prev, fileName],
+                  );
+                }}
+                onCompress={async (path, files) => {
+                  if (currentSelectedServerId === '') return;
+                  const outputPath = path
+                    ? `${path}/compressed.zip`
+                    : 'compressed.zip';
+                  await fetch('/api/file-system', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      action: 'compress',
+                      name: currentSelectedServerId,
+                      files: files.map((f) => (path ? `${path}/${f}` : f)),
+                      outputPath,
+                    }),
+                  });
+                  setSelectedFiles([]);
+                  fetchFileStructure();
+                }}
+                onUncompress={async (path, zipFile) => {
+                  if (currentSelectedServerId === '') return;
+                  const outputDir = path
+                    ? `${path}/${zipFile}-uncompressed`
+                    : `${zipFile}-uncompressed`;
+                  await fetch('/api/file-system', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      action: 'uncompress',
+                      name: currentSelectedServerId,
+                      zipPath: path ? `${path}/${zipFile}` : zipFile,
+                      outputDir,
+                    }),
+                  });
+                  setSelectedFiles([]);
+                  fetchFileStructure();
+                }}
                 onNavigate={(path) => {}}
                 handleFileChange={(path, content) => {
                   if (path === '' || currentSelectedServerId === '') return;
@@ -169,6 +280,7 @@ export default function ServerManagement() {
                       )}`,
                       { method: 'PUT', body: content },
                     );
+                    fetchFileStructure();
                   };
                   submitFileChange();
                 }}
@@ -189,9 +301,13 @@ export default function ServerManagement() {
                   }
                   return '';
                 }}
-                handleCreate={(path, type) => {
+                handleCreate={async (path, type) => {
                   if (currentSelectedServerId === '') return;
-                  const createEntry = async () => {
+                  startTransition(async () => {
+                    addOptimisticFileStructure({
+                      type: 'create',
+                      payload: { path, type },
+                    });
                     await fetch(`/api/file-system`, {
                       method: 'POST',
                       body: JSON.stringify({
@@ -201,8 +317,8 @@ export default function ServerManagement() {
                         ...(type === DirectoryType.File ? { content: '' } : {}),
                       }),
                     });
-                  };
-                  createEntry();
+                    fetchFileStructure();
+                  });
                 }}
                 handleDelete={async (path, type, recursive) => {
                   if (currentSelectedServerId === '') return false;
@@ -216,53 +332,124 @@ export default function ServerManagement() {
                         'Invalid state: recursive delete on file',
                       );
                     }
-                    confirm(
-                      `Are you sure you want to recursively delete the folder at ${path} and all its contents? This action cannot be undone.`,
-                    );
+                    if (
+                      !confirm(
+                        `Are you sure you want to recursively delete the folder at ${path} and all its contents? This action cannot be undone.`,
+                      )
+                    )
+                      return false;
                   }
                   if (type === DirectoryType.Directory && !recursive) {
-                    confirm(
-                      `Are you sure you want to delete the folder at ${path} without deleting its contents? This may fail if the folder is not empty.`,
-                    );
-                  }
-                  let response: Response;
-                  try {
-                    response = await fetch(
-                      `/api/file-system?name=${currentSelectedServerId}`,
-                      {
-                        method: 'DELETE',
-                        body: JSON.stringify({
-                          name: currentSelectedServerId,
-                          path,
-                          type,
-                          recursive,
-                        }),
-                      },
-                    );
-                  } catch (e) {
-                    console.error('Error during delete request:', e);
-                    return false;
+                    if (
+                      !confirm(
+                        `Are you sure you want to delete the folder at ${path} without deleting its contents? This may fail if the folder is not empty.`,
+                      )
+                    )
+                      return false;
                   }
 
-                  if (response.ok) {
-                    const data = await response.json();
-                    console.log('Delete successful:', data);
-                    return data.success;
-                  } else {
-                    const data = await response.json();
-                    console.error(
-                      'Delete request failed with status:',
-                      response.status,
+                  startTransition(async () => {
+                    addOptimisticFileStructure({
+                      type: 'delete',
+                      payload: { path },
+                    });
+                    try {
+                      const response = await fetch(
+                        `/api/file-system?name=${currentSelectedServerId}`,
+                        {
+                          method: 'DELETE',
+                          body: JSON.stringify({
+                            name: currentSelectedServerId,
+                            path,
+                            type,
+                            recursive,
+                          }),
+                        },
+                      );
+                      if (response.ok) {
+                        setSelectedFiles([]);
+                        fetchFileStructure();
+                      } else {
+                        const data = await response.json();
+                        console.error(
+                          'Delete request failed with status:',
+                          response.status,
+                        );
+                        alert(
+                          data.message ||
+                            'Unknown error occurred during deletion.',
+                        );
+                        fetchFileStructure();
+                      }
+                    } catch (e) {
+                      console.error('Error during delete request:', e);
+                      fetchFileStructure();
+                    }
+                  });
+                  return true;
+                }}
+                handleRename={async (oldPath, newPath) => {
+                  if (currentSelectedServerId === '') return;
+                  startTransition(async () => {
+                    addOptimisticFileStructure({
+                      type: 'rename',
+                      payload: { oldPath, newPath },
+                    });
+                    await fetch(`/api/file-system`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        name: currentSelectedServerId,
+                        oldPath,
+                        newPath,
+                      }),
+                    });
+                    setSelectedFiles([]);
+                    fetchFileStructure();
+                  });
+                }}
+                handleUpload={async (path, file) => {
+                  if (currentSelectedServerId === '') return;
+                  startTransition(async () => {
+                    addOptimisticFileStructure({
+                      type: 'create',
+                      payload: { path, type: DirectoryType.File },
+                    });
+                    await fetch(
+                      `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
+                        path,
+                      )}`,
+                      { method: 'PUT', body: file },
                     );
-                    alert(
-                      data.message || 'Unknown error occurred during deletion.',
-                    );
+                    fetchFileStructure();
+                  });
+                }}
+                handleDownload={async (path, fileName) => {
+                  if (path === '' || currentSelectedServerId === '') return;
+                  const fileResponse = await fetch(
+                    `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
+                      path,
+                    )}`,
+                  );
+                  if (fileResponse.ok) {
+                    const data = await fileResponse.json();
+                    if (data.success) {
+                      const blob = new Blob([data.data], {
+                        type: 'application/octet-stream',
+                      });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    }
                   }
-                  return false;
                 }}
               />
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

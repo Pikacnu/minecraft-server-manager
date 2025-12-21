@@ -80,7 +80,7 @@ export default function ServerSetting({
   }, [fieldValues, setSetting]);
 
   const MainComponent = (
-    <div className='flex flex-col w-full border border-gray-300 rounded-lg p-4 bg-gray-500/40 grow'>
+    <div className='flex flex-col w-full border border-gray-300 rounded-lg p-4 bg-gray-500/40 grow h-full overflow-y-auto'>
       <div className='flex flex-row w-full'>
         <input
           className='grow border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'

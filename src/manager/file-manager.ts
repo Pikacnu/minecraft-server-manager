@@ -1,7 +1,9 @@
 import { ManagerMountPath, LocalMountPath } from '@/utils/config';
 import { join, relative, resolve, normalize, isAbsolute } from 'node:path';
 import { file, Glob } from 'bun';
-import { lstat, mkdir, rmdir, exists } from 'node:fs/promises';
+import { lstat, mkdir, rmdir, exists, rename, rm } from 'node:fs/promises';
+import { createWriteStream, createReadStream } from 'node:fs';
+import { Writable, Readable } from 'stream';
 
 export class FileController {
   private name: string;
@@ -159,9 +161,50 @@ export class FileController {
 
     const fullPath = join(this.basePath, filePath);
     await Bun.write(fullPath, data);
-    if (!this.fileSet.has(fullPath)) {
-      this.fileSet.add(fullPath);
+    if (!this.fileSet.has(filePath)) {
+      this.fileSet.add(filePath);
     }
+  }
+
+  public async createReadStream(filePath: string): Promise<Readable> {
+    if (!this.isPathValid(filePath)) {
+      throw new Error('Invalid file path.');
+    }
+    if (!this.fileSet.has(filePath)) {
+      throw new Error('File does not exist.');
+    }
+    const fullPath = join(this.basePath, filePath);
+    return createReadStream(fullPath);
+  }
+
+  public async createWriteStream(filePath: string): Promise<Writable> {
+    if (this.isReadonly) throw new Error('FileManager is in read-only mode.');
+    if (!this.isPathValid(filePath)) {
+      throw new Error('Invalid file path.');
+    }
+    if (!this.filter.matches(filePath)) {
+      throw new Error('File path is excluded by filter.');
+    }
+    const segments = normalize(filePath).split(/\/|\\/);
+    let currentLevel = this.fileStructure;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const dir = segments[i]!;
+      if (!(dir in currentLevel)) {
+        currentLevel[dir] = {};
+      }
+      currentLevel = currentLevel[dir] as Record<
+        string,
+        string | Record<string, string>
+      >;
+    }
+    const fileName = segments[segments.length - 1]!;
+    currentLevel[fileName] = filePath;
+    const fullPath = join(this.basePath, filePath);
+    if (!this.fileSet.has(filePath)) {
+      this.fileSet.add(filePath);
+    }
+    const writeStream = createWriteStream(fullPath);
+    return writeStream;
   }
 
   public async deleteFile(filePath: string): Promise<void> {
@@ -170,26 +213,8 @@ export class FileController {
       throw new Error('Invalid file path.');
     }
     const fullPath = join(this.basePath, filePath);
-    await file(fullPath).delete();
-    this.fileSet.delete(filePath);
-    // Update file structure
-    const segments = normalize(filePath).split(/\/|\\/);
-    if (segments.length < 1) return;
-    if (segments.length === 1) {
-      delete this.fileStructure[segments[0]!];
-    }
-    let currentLevel = this.fileStructure;
-    for (let i = 0; i < segments.length - 1; i++) {
-      const dir = segments[i]!;
-      if (!(dir in currentLevel)) {
-        throw new Error('Directory does not exist in file structure.');
-      }
-      currentLevel = currentLevel[dir] as Record<
-        string,
-        string | Record<string, string>
-      >;
-    }
-    delete currentLevel[segments[segments.length - 1]!];
+    await rm(fullPath, { recursive: true, force: true });
+    await this.rescan();
   }
 
   public async createDirectory(dirPath: string): Promise<void> {
@@ -239,22 +264,29 @@ export class FileController {
     }
     const fullPath = join(this.basePath, dirPath);
     await rmdir(fullPath, { recursive });
-    this.directorySet.delete(dirPath);
-    if (segments.length < 1) return;
-    if (segments.length === 1) {
-      delete this.fileStructure[segments[0]!];
+    await this.rescan();
+  }
+
+  public async rename(oldPath: string, newPath: string): Promise<void> {
+    if (this.isReadonly) throw new Error('FileManager is in read-only mode.');
+    if (!this.isPathValid(oldPath) || !this.isPathValid(newPath)) {
+      throw new Error('Invalid path.');
     }
-    let currentLevel = this.fileStructure;
-    for (let i = 0; i < segments.length - 2; i++) {
-      const dir = segments[i]!;
-      if (!(dir in currentLevel)) {
-        throw new Error('Directory does not exist in file structure.');
-      }
-      if (i === segments.length - 2) {
-        delete currentLevel[segments[i + 1]!];
-        return;
-      }
+    const oldFullPath = join(this.basePath, oldPath);
+    const newFullPath = join(this.basePath, newPath);
+    await rename(oldFullPath, newFullPath);
+    await this.buildFileStructure(); // Rebuild structure after rename
+  }
+
+  public async rescan(): Promise<void> {
+    await this.buildFileStructure();
+  }
+
+  public getAbsolutePath(relativePath: string): string {
+    if (!this.isPathValid(relativePath)) {
+      throw new Error('Invalid path.');
     }
+    return join(this.basePath, relativePath);
   }
 }
 

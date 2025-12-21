@@ -73,11 +73,12 @@ export class Manager {
   }
   public static init(): void {
     if (this.isInitialized) return;
-    gateClient.listServers({}).then((res) => {
-      if (res.servers.some((server) => server.name === 'dummy')) {
-        gateClient.unregisterServer({ name: 'dummy' });
-      }
-    });
+    this.isInitialized = true;
+    // gateClient.listServers({}).then((res) => {
+    //   if (res.servers.some((server) => server.name === 'dummy')) {
+    //     gateClient.unregisterServer({ name: 'dummy' });
+    //   }
+    // });
     this.serviceWatcher = new Watcher();
     this.serviceWatcher.startWatch<k8sApiEndpoint.Services>(
       k8sApiEndpoint.Services,
@@ -247,6 +248,9 @@ export class Manager {
     this.gateServerWatcher = setInterval(async () => {
       const servers = ((await gateClient.listServers({})) ?? { servers: [] })
         .servers;
+      if (servers.some((server) => server.name === 'dummy')) {
+        await gateClient.unregisterServer({ name: 'dummy' });
+      }
       servers.forEach((server) => {
         const existingServer = this.servers.get(
           this.serviceNameToServerName.get(server.name)!,
@@ -259,8 +263,6 @@ export class Manager {
         }
       });
     }, 5 * 1_000);
-
-    this.isInitialized = true;
   }
 
   public static async cleanup(): Promise<void> {
@@ -351,6 +353,7 @@ export class Manager {
     }
 
     await deleteService(
+      // This won't throw error even if the deployment doesn't exist
       minecraftServerDeployment({
         name: serverName,
         type: (configMapData?.data?.TYPE ??
