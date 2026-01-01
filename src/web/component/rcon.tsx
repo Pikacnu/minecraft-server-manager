@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { SendHorizonal, ChevronDown, ChevronUp } from 'lucide-react';
-import { MessageType, type Message } from '../websocket/type';
+import { MessageType } from '../websocket/type';
 import { useWebSocket } from '../contexts/websocket';
 
 export default function Rcon({ serverName }: { serverName: string }) {

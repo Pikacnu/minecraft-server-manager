@@ -245,24 +245,32 @@ export class Manager {
         );
       },
     );
-    this.gateServerWatcher = setInterval(async () => {
-      const servers = ((await gateClient.listServers({})) ?? { servers: [] })
-        .servers;
-      if (servers.some((server) => server.name === 'dummy')) {
-        await gateClient.unregisterServer({ name: 'dummy' });
-      }
-      servers.forEach((server) => {
-        const existingServer = this.servers.get(
-          this.serviceNameToServerName.get(server.name)!,
-        );
-        if (existingServer) {
-          this.servers.set(existingServer.name, {
-            ...existingServer,
-            playersOnline: server.players,
-          });
+    const gateWatcherFunction = async () => {
+      try {
+        const servers = ((await gateClient.listServers({})) ?? { servers: [] })
+          .servers;
+        if (servers.some((server) => server.name === 'dummy')) {
+          await gateClient.unregisterServer({ name: 'dummy' });
         }
-      });
-    }, 5 * 1_000);
+        servers.forEach((server) => {
+          const existingServer = this.servers.get(
+            this.serviceNameToServerName.get(server.name)!,
+          );
+          if (existingServer) {
+            this.servers.set(existingServer.name, {
+              ...existingServer,
+              playersOnline: server.players,
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error updating server player counts:', error);
+      } finally {
+        return setTimeout(gateWatcherFunction, 15000);
+      }
+    };
+
+    this.gateServerWatcher = setTimeout(gateWatcherFunction, 15000);
   }
 
   public static async cleanup(): Promise<void> {

@@ -70,9 +70,30 @@ try {
   console.error('Failed to start server:', error);
 }
 
+function exitHandler() {
+  console.log('Shutting down server manager...');
+  Manager.cleanup();
+  process.exit();
+}
+
 process.on('exit', (code) => {
   console.log(`Process exiting with code: ${code}`);
   Manager.cleanup();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  if (reason instanceof Error) {
+    if (reason.name !== 'TimeoutError') {
+      console.error(
+        'Unhandled Rejection at:',
+        promise,
+        'reason:',
+        reason.stack,
+      );
+    }
+  } else {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  }
 });
 
 //await deployService(

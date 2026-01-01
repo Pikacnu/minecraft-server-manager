@@ -16,15 +16,15 @@ import { WebSocketProvider } from '../contexts/websocket';
 const elem = document.getElementById('root')!;
 const app = (
   <StrictMode>
-    <PageProvider>
-      <ServerProvider>
-        <OpenServerPanelProvider>
-          <WebSocketProvider>
+    <WebSocketProvider>
+      <PageProvider>
+        <ServerProvider>
+          <OpenServerPanelProvider>
             <App />
-          </WebSocketProvider>
-        </OpenServerPanelProvider>
-      </ServerProvider>
-    </PageProvider>
+          </OpenServerPanelProvider>
+        </ServerProvider>
+      </PageProvider>
+    </WebSocketProvider>
   </StrictMode>
 );
 

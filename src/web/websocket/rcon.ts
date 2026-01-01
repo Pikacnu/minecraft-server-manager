@@ -1,13 +1,13 @@
 import { Manager } from '@/manager';
 import { RconManager } from '../utils/rconManager';
-import { MessageType, type Message } from './type';
+import { MessageType, type ReceiveMessage, type SendMessage } from './type';
 import { RCONPassword } from '@/utils/config';
 
 export async function rconHandler(
-  message: Message,
-  send: (message: Message) => void,
+  message: SendMessage<MessageType.RCON>,
+  send: (message: ReceiveMessage<MessageType.RCON>) => void,
 ) {
-  const rconData = message.payload as { command: string; serverName: string };
+  const rconData = (message as SendMessage<MessageType.RCON>).payload;
   const serverData = Manager.getServerInfoByName(rconData.serverName);
   if (!serverData) {
     send({
@@ -17,7 +17,7 @@ export async function rconHandler(
         message: `Server ${rconData.serverName} not found.`,
         serverName: rconData.serverName,
       },
-    });
+    } as ReceiveMessage<MessageType.RCON>);
     return;
   }
   try {
@@ -48,6 +48,6 @@ export async function rconHandler(
         message: `Failed to execute RCON command`,
         serverName: rconData.serverName,
       },
-    });
+    } as ReceiveMessage<MessageType.RCON>);
   }
 }

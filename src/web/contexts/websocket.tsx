@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, useContext, createContext } from 'react';
-import { MessageType, type Message } from '../websocket/type';
+import {
+  MessageType,
+  type ReceiveMessage,
+  type SendMessage,
+} from '../websocket/type';
 
 type WebSocketContextType = {
   websocket: WebSocket | null;
-  sendMessage: (message: Message) => void;
-  message: (Message & { id: string }) | null;
+  sendMessage: (message: SendMessage) => void;
+  message: (ReceiveMessage & { id: string }) | null;
 };
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
@@ -15,15 +19,23 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-  const [message, setMessage] = useState<(Message & { id: string }) | null>(
-    null,
-  );
+  const [message, setMessage] = useState<
+    (ReceiveMessage & { id: string }) | null
+  >(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const [sendMessageQueue, setSendMessageQueue] = useState<SendMessage[]>([]);
 
   const setupWebSocket = () => {
     const ws = new WebSocket(`ws://${window.location.host}/api/websocket`);
     ws.onopen = () => {
       console.log('WebSocket connection opened');
+      if (sendMessageQueue.length > 0) {
+        sendMessageQueue.forEach(async (msg, i) => {
+          await new Promise((r) => setTimeout(r, 100 * i));
+          ws.send(JSON.stringify(msg));
+        });
+        setSendMessageQueue([]);
+      }
     };
     ws.onclose = () => {
       console.log('WebSocket connection closed, attempting to reconnect...');
@@ -32,7 +44,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     ws.onmessage = (event) => {
       try {
-        const parsedMessage = JSON.parse(event.data) as Message;
+        const parsedMessage = JSON.parse(event.data) as ReceiveMessage;
         if (
           !Object.keys(parsedMessage).length ||
           ['type', 'payload'].some((key) => !(key in parsedMessage))
@@ -71,11 +83,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
   }, []);
-  const sendMessage = (message: Message) => {
+
+  const sendMessage = (message: SendMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
       console.error('WebSocket is not open. Unable to send message.');
+      setSendMessageQueue((prevQueue) => [...prevQueue, message]);
     }
   };
 

@@ -2,10 +2,11 @@ import { file, serve } from 'bun';
 import index from '#/entry/index.html';
 import serverInfo from './api/serverInfo';
 import serverManage from './api/serverManage';
-import { MessageType, type Message } from './websocket/type';
+import { MessageType, type SendMessage } from './websocket/type';
 import { rconHandler } from './websocket/rcon';
 import serverInstance from './api/serverInstance';
 import fileSystem from './api/fileSystem';
+import { serverInfoHandler } from './websocket/serverinfo';
 
 export type WebServerArguments = Partial<
   Omit<
@@ -20,7 +21,7 @@ export const webServer = async (args?: WebServerArguments) => {
     routes: {
       // Serve index.html for all unmatched routes in development.
       '/': index,
-      '/api/server-info': serverInfo,
+      //'/api/server-info': serverInfo,
       '/api/server-manage': serverManage,
       '/api/server-instance': serverInstance,
       '/api/file-system': fileSystem,
@@ -48,7 +49,7 @@ export const webServer = async (args?: WebServerArguments) => {
       },
       message(ws, message) {
         try {
-          const parsedMessage = JSON.parse(message.toString()) as Message;
+          const parsedMessage = JSON.parse(message.toString()) as SendMessage;
           if (
             !Object.keys(parsedMessage).length ||
             ['type', 'payload'].some((key) => !(key in parsedMessage))
@@ -70,9 +71,20 @@ export const webServer = async (args?: WebServerArguments) => {
               );
               break;
             case MessageType.RCON:
-              rconHandler(parsedMessage, (responseMessage) => {
-                ws.send(JSON.stringify(responseMessage));
-              });
+              rconHandler(
+                parsedMessage as SendMessage<MessageType.RCON>,
+                (responseMessage) => {
+                  ws.send(JSON.stringify(responseMessage));
+                },
+              );
+              break;
+            case MessageType.SERVERINFO:
+              serverInfoHandler(
+                parsedMessage as SendMessage<MessageType.SERVERINFO>,
+                (responseMessage) => {
+                  ws.send(JSON.stringify(responseMessage));
+                },
+              );
               break;
             default:
               console.error(
