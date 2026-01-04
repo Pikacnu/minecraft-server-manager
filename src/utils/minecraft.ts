@@ -6,7 +6,11 @@ export async function getMinecraftVersions(): Promise<string[]> {
   if (cacheMinecraftVersions && now - cacheTimestamp < CACHE_DURATION) {
     return cacheMinecraftVersions;
   }
-  const response = await fetch('https://meta.fabricmc.net/v2/versions/game');
-  const data = await response.json();
-  return data.map((version: { version: string }) => version.version);
+  try {
+    const response = await fetch('https://meta.fabricmc.net/v2/versions/game');
+    const data = await response.json();
+    return data.map((version: { version: string }) => version.version);
+  } catch (error) {
+    return [];
+  }
 }

@@ -235,6 +235,28 @@ export class Manager {
               );
             }
         }
+        if (phase === PhaseEnum.ADDED) {
+          const serverStatus = this.serverStatus.get(serverName);
+          if (serverStatus === ServerStatusEnum.RUNNING) {
+            if (!FileControllerManager.hasController(serverName)) {
+              try {
+                FileControllerManager.registerController(
+                  serverName,
+                  new FileController(serverName, {}),
+                );
+              } catch (error) {
+                console.error(
+                  `Failed to register file controller for ${serverName}:`,
+                  error,
+                );
+              }
+            } else {
+              const controller =
+                FileControllerManager.getController(serverName);
+              await controller.rescan();
+            }
+          }
+        }
 
         console.log(
           `Server Deployment | ${phase}: ${serverName}(${deploymentName}) | Replicas : ${

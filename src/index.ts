@@ -1,6 +1,6 @@
+import { deployService } from './utils/k8s';
 import { webServer } from '@/web/index';
 import { Manager } from './manager';
-import { deployService } from './utils/k8s';
 import { SystemRequiredDeployments } from './deployment/system';
 import { defaultFilter, FileControllerManager } from './manager/file-manager';
 import { DomainManager } from './manager/domain-manager';

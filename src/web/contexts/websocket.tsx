@@ -23,19 +23,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     (ReceiveMessage & { id: string }) | null
   >(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const [sendMessageQueue, setSendMessageQueue] = useState<SendMessage[]>([]);
 
   const setupWebSocket = () => {
     const ws = new WebSocket(`ws://${window.location.host}/api/websocket`);
     ws.onopen = () => {
       console.log('WebSocket connection opened');
-      if (sendMessageQueue.length > 0) {
-        sendMessageQueue.forEach(async (msg, i) => {
-          await new Promise((r) => setTimeout(r, 100 * i));
-          ws.send(JSON.stringify(msg));
-        });
-        setSendMessageQueue([]);
-      }
     };
     ws.onclose = () => {
       console.log('WebSocket connection closed, attempting to reconnect...');
@@ -89,7 +81,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       wsRef.current.send(JSON.stringify(message));
     } else {
       console.error('WebSocket is not open. Unable to send message.');
-      setSendMessageQueue((prevQueue) => [...prevQueue, message]);
     }
   };
 

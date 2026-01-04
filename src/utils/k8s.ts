@@ -12,6 +12,7 @@ import type { ServicesDeployments } from './type';
 import { Namespace } from './config';
 import { spawn } from 'child_process';
 import * as yaml from 'js-yaml';
+import { fetch } from 'bun';
 
 const kubeConfig = new KubeConfig();
 
@@ -21,10 +22,24 @@ if (process.env.KUBERNETES_SERVICE_HOST) {
   console.log('Using in-cluster Kubernetes configuration');
   kubeConfig.loadFromCluster();
 } else {
+  kubeConfig.loadFromDefault();
+
+  // (global as any).fetch = (
+  //   ...args: Parameters<typeof fetch>
+  // ): ReturnType<typeof fetch> =>
+  //   fetch(args[0], {
+  //     ...args[1],
+  //     tls: {
+  //       ca: kubeConfig.getCurrentCluster()?.caData,
+  //       cert: kubeConfig.getCurrentUser()?.certData,
+  //       key: kubeConfig.getCurrentUser()?.keyData,
+  //       rejectUnauthorized: false,
+  //     },
+  //   } as RequestInit);
   // Running locally - use local kubeconfig with kubectl proxy fallback
   console.log('Using local kubeconfig with kubectl proxy');
 
-  // Try to use kubectl proxy if available
+  //Try to use kubectl proxy if available
   try {
     // Start kubectl proxy to bypass Bun mTLS issues (development only)
     const tempProxyPort = Math.floor(Math.random() * (20000 - 10000) + 10000);

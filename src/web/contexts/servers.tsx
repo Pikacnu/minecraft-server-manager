@@ -64,8 +64,10 @@ export const ServerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [message]);
 
   useEffect(() => {
-    sendMessage({ type: MessageType.SERVERINFO, payload: {} });
-    console.log('Requested server info via WebSocket');
+    setTimeout(() => {
+      sendMessage({ type: MessageType.SERVERINFO, payload: {} });
+      console.log('Requested server info via WebSocket');
+    }, 500);
   }, []);
 
   return (

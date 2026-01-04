@@ -45,7 +45,7 @@ export const webServer = async (args?: WebServerArguments) => {
     },
     websocket: {
       open(ws) {
-        console.log('WebSocket connection opened');
+        //console.log('WebSocket connection opened');
       },
       message(ws, message) {
         try {
@@ -97,7 +97,7 @@ export const webServer = async (args?: WebServerArguments) => {
         }
       },
       close(ws, code, reason) {
-        console.log(`WebSocket connection closed: ${code} - ${reason}`);
+        //console.log(`WebSocket connection closed: ${code} - ${reason}`);
       },
     },
     development: process.env.NODE_ENV !== 'production' && {
