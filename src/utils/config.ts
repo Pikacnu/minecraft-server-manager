@@ -21,3 +21,4 @@ export const WildCardDomainPrefix =
   process.env.WILDCARD_DOMAIN_PREFIX || 'srv-mc-only';
 export const isWildcardDomain =
   process.env.USE_WILDCARD_DOMAIN === 'true' || true;
+export const isPreviewMode = process.env.PREVIEW_MODE === 'true';
