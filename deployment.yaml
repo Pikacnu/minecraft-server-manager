@@ -12,6 +12,7 @@ rules:
   - apiGroups: ["", "apps", "batch", "networking.k8s.io"]
     resources:
       - deployments
+      - deployments/scale
       - services
       - pods
       - persistentvolumes
@@ -104,7 +105,7 @@ spec:
                 name: minecraft-manager-config
             - secretRef:
                 name: minecraft-manager-secrets
-          
+
           volumeMounts:
             # Mount the NFS share to the path expected by the application
             # The application appends '/minecraft-server-manager' to NFS_PATH
