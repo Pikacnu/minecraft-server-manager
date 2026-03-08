@@ -13,6 +13,7 @@ import { PageProvider } from '../contexts/page';
 import { ServerProvider } from '../contexts/servers';
 import { OpenServerPanelProvider } from '../contexts/addServerPanel';
 import { WebSocketProvider } from '../contexts/websocket';
+import { NotificationProvider } from '../contexts/notification';
 import { isPreviewMode } from '@/utils/config';
 
 async function enableMocking() {
@@ -31,15 +32,17 @@ async function enableMocking() {
 const elem = document.getElementById('root')!;
 const app = (
   <StrictMode>
-    <WebSocketProvider>
-      <PageProvider>
-        <ServerProvider>
-          <OpenServerPanelProvider>
-            <App />
-          </OpenServerPanelProvider>
-        </ServerProvider>
-      </PageProvider>
-    </WebSocketProvider>
+    <NotificationProvider>
+      <WebSocketProvider>
+        <PageProvider>
+          <ServerProvider>
+            <OpenServerPanelProvider>
+              <App />
+            </OpenServerPanelProvider>
+          </ServerProvider>
+        </PageProvider>
+      </WebSocketProvider>
+    </NotificationProvider>
   </StrictMode>
 );
 

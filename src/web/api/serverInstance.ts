@@ -151,41 +151,57 @@ export async function PATCH(request: Request): Promise<Response> {
       `minecraft-server-env-configmap-${serverName}`,
       updatedVariables,
     );
+
+    // Always trigger rollout when config changes by adding annotation
+    const patchOperations: Array<{
+      op: 'add' | 'replace';
+      path: string;
+      value: string;
+    }> = [
+      {
+        op: 'add' as const,
+        path: '/spec/template/metadata/annotations/configUpdatedAt',
+        value: new Date().toISOString(),
+      },
+    ];
+
     // update deployment if memoryLimit or cpu changed
     if (filteredVariables.memoryLimit) {
-      await patchDeployment(
-        Namespace,
-        `minecraft-server-deployment-${serverName}`,
-        [
-          {
-            op: 'replace',
-            path: '/spec/template/spec/containers/0/resources/limits/memory',
-            value: `${(
-              Number(filteredVariables.memoryLimit) * 1.15
-            ).toFixed()}Mi`,
-          },
-          {
-            op: 'replace',
-            path: '/spec/template/spec/containers/0/resources/requests/memory',
-            value: `${Number(filteredVariables.memoryLimit).toFixed()}Mi`,
-          },
-          ...(filteredVariables.cpu !== undefined
-            ? [
-                {
-                  op: 'replace' as const,
-                  path: '/spec/template/spec/containers/0/resources/limits/cpu',
-                  value: String(filteredVariables.cpu),
-                },
-                {
-                  op: 'replace' as const,
-                  path: '/spec/template/spec/containers/0/resources/requests/cpu',
-                  value: String(filteredVariables.cpu),
-                },
-              ]
-            : []),
-        ],
+      patchOperations.push(
+        {
+          op: 'replace' as const,
+          path: '/spec/template/spec/containers/0/resources/limits/memory',
+          value: `${(
+            Number(filteredVariables.memoryLimit) * 1.15
+          ).toFixed()}Mi`,
+        },
+        {
+          op: 'replace' as const,
+          path: '/spec/template/spec/containers/0/resources/requests/memory',
+          value: `${Number(filteredVariables.memoryLimit).toFixed()}Mi`,
+        },
       );
+      if (filteredVariables.cpu !== undefined) {
+        patchOperations.push(
+          {
+            op: 'replace' as const,
+            path: '/spec/template/spec/containers/0/resources/limits/cpu',
+            value: String(filteredVariables.cpu),
+          },
+          {
+            op: 'replace' as const,
+            path: '/spec/template/spec/containers/0/resources/requests/cpu',
+            value: String(filteredVariables.cpu),
+          },
+        );
+      }
     }
+
+    await patchDeployment(
+      Namespace,
+      `minecraft-server-deployment-${serverName}`,
+      patchOperations,
+    );
   } catch (error) {
     console.error('Failed to update server variables:', error);
     return Response.json(

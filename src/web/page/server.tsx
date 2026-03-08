@@ -6,6 +6,7 @@ import { useState } from 'react';
 import AddServerPopUp from '../component/addServerPopUp';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
+import { useNotification } from '../contexts/notification';
 
 export default function Server() {
   const { serverInfo, setCurrentSelectedServerId, setServerInfo } =
@@ -14,6 +15,7 @@ export default function Server() {
   const [serverSettingSaver, setServerSettingSaver] = useState({});
   const { isOpen: isOpenAddServerPopUp, setIsOpen: setIsOpenAddServerPopUp } =
     useOpenServerPanel();
+  const { addNotification } = useNotification();
 
   return (
     <div className='flex flex-col w-full relative gap-2'>
@@ -62,7 +64,7 @@ export default function Server() {
                 </div>
                 <div className='flex flex-row justify-around *:p-2 *:border *:border-gray-300 rounded-md mt-2 *:rounded-lg w-full *:select-none'>
                   <button
-                    className='bg-blue-500 hover:bg-blue-600 text-white p-2 flex flex-row items-center gap-2 rounded-md'
+                    className='bg-blue-500 hover:bg-blue-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
                     onClick={() => {
                       setCurrentSelectedServerId?.(server.id);
                       setCurrentSection(PageSectionEnum.ServerManagement);
@@ -71,19 +73,37 @@ export default function Server() {
                     <SquarePen /> Edit
                   </button>
                   <button
-                    className='bg-yellow-500 hover:bg-yellow-800 text-white p-2 flex flex-row items-center gap-2 rounded-md'
+                    className='bg-yellow-500 hover:bg-yellow-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
                     onClick={() => {
                       async function restartServer() {
-                        fetch('/api/server-manage', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            action: 'restart',
-                            serverName: server.name,
-                          }),
-                        });
+                        try {
+                          const response = await fetch('/api/server-manage', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              action: 'restart',
+                              serverName: server.name,
+                            }),
+                          });
+                          if (response.ok) {
+                            addNotification(
+                              `Server "${server.name}" is restarting`,
+                              'success',
+                            );
+                          } else {
+                            addNotification(
+                              `Failed to restart "${server.name}"`,
+                              'error',
+                            );
+                          }
+                        } catch (error) {
+                          addNotification(
+                            `Failed to restart "${server.name}"`,
+                            'error',
+                          );
+                        }
                       }
                       restartServer();
                     }}
@@ -91,19 +111,37 @@ export default function Server() {
                     <RotateCcw /> Restart
                   </button>
                   <button
-                    className='bg-red-500 hover:bg-red-600 text-white p-2 flex flex-row items-center gap-2 rounded-md'
+                    className='bg-red-500 hover:bg-red-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
                     onClick={() => {
                       async function terminateServer() {
-                        fetch('/api/server-manage', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            action: 'stop',
-                            serverName: server.name,
-                          }),
-                        });
+                        try {
+                          const response = await fetch('/api/server-manage', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              action: 'stop',
+                              serverName: server.name,
+                            }),
+                          });
+                          if (response.ok) {
+                            addNotification(
+                              `Server "${server.name}" is stopping`,
+                              'success',
+                            );
+                          } else {
+                            addNotification(
+                              `Failed to stop "${server.name}"`,
+                              'error',
+                            );
+                          }
+                        } catch (error) {
+                          addNotification(
+                            `Failed to stop "${server.name}"`,
+                            'error',
+                          );
+                        }
                       }
                       terminateServer();
                     }}
@@ -111,23 +149,41 @@ export default function Server() {
                     <Power /> Terminate
                   </button>
                   <button
-                    className='bg-gray-700 hover:bg-gray-800 text-white p-2 flex flex-row items-center gap-2 rounded-md'
+                    className='bg-gray-700 hover:bg-gray-900 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
                     onClick={() => {
                       async function deleteServer() {
-                        fetch('/api/server-instance', {
-                          method: 'DELETE',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            serverName: server.name,
-                          }),
-                        });
+                        try {
+                          const response = await fetch('/api/server-instance', {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              serverName: server.name,
+                            }),
+                          });
+                          if (response.ok) {
+                            addNotification(
+                              `Server "${server.name}" deleted successfully`,
+                              'success',
+                            );
+                            setServerInfo((prev) =>
+                              prev.filter((s) => s.id !== server.id),
+                            );
+                          } else {
+                            addNotification(
+                              `Failed to delete "${server.name}"`,
+                              'error',
+                            );
+                          }
+                        } catch (error) {
+                          addNotification(
+                            `Failed to delete "${server.name}"`,
+                            'error',
+                          );
+                        }
                       }
                       deleteServer();
-                      setServerInfo((prev) =>
-                        prev.filter((s) => s.id !== server.id),
-                      );
                     }}
                   >
                     <Trash /> Delete

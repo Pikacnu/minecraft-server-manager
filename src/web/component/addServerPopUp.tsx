@@ -5,21 +5,36 @@ import type {
 import ServerSetting from './serverSetting';
 import { useState } from 'react';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
+import { useNotification } from '../contexts/notification';
 
 export default function AddServerPopUp() {
   const [serverSettingSaver, setServerSettingSaver] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> & Variables
   >({});
   const { isOpen, setIsOpen } = useOpenServerPanel();
-  const handleAddServer = () => {
-    fetch('/api/server-instance', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(serverSettingSaver),
-    });
-    setIsOpen(false);
+  const { addNotification } = useNotification();
+  const handleAddServer = async () => {
+    try {
+      const response = await fetch('/api/server-instance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(serverSettingSaver),
+      });
+      if (response.ok) {
+        addNotification(
+          `Server \"${serverSettingSaver.SERVER_NAME}\" created successfully`,
+          'success',
+        );
+        setIsOpen(false);
+      } else {
+        const data = await response.json();
+        addNotification(data.message || 'Failed to create server', 'error');
+      }
+    } catch (error) {
+      addNotification('Failed to create server', 'error');
+    }
   };
   return (
     <div

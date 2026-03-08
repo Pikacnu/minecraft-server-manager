@@ -14,6 +14,7 @@ import {
   getDeploymentData,
   k8sApiEndpoint,
   patchConfigMap,
+  patchDeployment,
   resumeDeploymentRollout,
   stopDeploymentRollout,
 } from '@/utils/k8s';
@@ -147,9 +148,8 @@ export class Manager {
             if (
               !Object.keys(gateConfigMap.config.servers).includes(servicesName)
             ) {
-              gateConfigMap.config.servers[
-                servicesName
-              ] = `${servicesName}.${Namespace}.svc.cluster.local:25565`;
+              gateConfigMap.config.servers[servicesName] =
+                `${servicesName}.${Namespace}.svc.cluster.local:25565`;
             }
           }
           if (phase === PhaseEnum.DELETED) {
@@ -204,18 +204,26 @@ export class Manager {
         const serverName = obj.metadata!.labels?.name || deploymentName;
 
         const replicas = obj.spec?.replicas || 0;
-        const totalReplicas = obj.status?.replicas || 0;
+        const currentReplicas = obj.status?.replicas || 0;
+        const onlineReplicas = obj.status?.availableReplicas || 0;
         switch (true) {
-          case totalReplicas === 0:
+          case replicas === 0: {
             this.serverStatus.set(serverName, ServerStatusEnum.TERMINATING);
             break;
-          case replicas === totalReplicas &&
-            obj.status?.availableReplicas === totalReplicas:
+          }
+          case replicas === currentReplicas &&
+            onlineReplicas === currentReplicas: {
             this.serverStatus.set(serverName, ServerStatusEnum.RUNNING);
             break;
-          default:
+          }
+          case replicas > currentReplicas: {
             this.serverStatus.set(serverName, ServerStatusEnum.RESTARTING);
             break;
+          }
+          default: {
+            this.serverStatus.set(serverName, ServerStatusEnum.UNKNOWN);
+            break;
+          }
         }
         if (phase === PhaseEnum.DELETED) {
           this.serverStatus.delete(serverName);
@@ -420,25 +428,50 @@ export class Manager {
       case ServerStatusEnum.RESTARTING:
         return;
       case ServerStatusEnum.TERMINATING:
-        resumeDeploymentRollout(
-          this.generateName(server, 'deployment'),
+        // Server is stopped, start it by setting replicas to 1
+        await patchDeployment(
           Namespace,
+          this.generateName(server, 'deployment'),
+          [
+            {
+              op: 'replace',
+              path: '/spec/replicas',
+              value: 1,
+            },
+          ],
         );
         return;
       default:
         break;
     }
-    const controller = new ServerController(
-      isDevelopment ? 'localhost' : address,
-      25575,
-      true,
-    );
-    if (!controller) {
-      throw new Error(`Failed to create ServerController for ${serverName}.`);
+
+    // Try graceful shutdown via RCON if server is running
+    try {
+      const controller = new ServerController(
+        isDevelopment ? 'localhost' : address,
+        25575,
+        true,
+      );
+      if (controller) {
+        await controller.connect();
+        await controller.sendCommand('stop');
+        await controller.disconnect();
+      }
+    } catch (error) {
+      console.log(
+        `RCON connection failed for ${serverName}, will force restart via annotation:`,
+        error,
+      );
     }
-    await controller.connect();
-    await controller.sendCommand('stop');
-    await controller.disconnect();
+
+    // Add annotation to trigger rollout (works even if RCON failed)
+    await patchDeployment(Namespace, this.generateName(server, 'deployment'), [
+      {
+        op: 'add',
+        path: '/spec/template/metadata/annotations/restartedAt',
+        value: new Date().toISOString(),
+      },
+    ]);
   }
 
   private static generateName(server: ServerInfo, target: string): string {
@@ -470,21 +503,17 @@ export class Manager {
       default:
         break;
     }
-
     const controller = new ServerController(
       isDevelopment ? 'localhost' : address,
       25575,
       true,
     );
     if (!controller) {
-      throw new Error(`Failed to create ServerController for ${serverName}.`);
+      console.error(`Failed to create ServerController for ${serverName}.`);
+    } else {
+      await controller.connect();
+      await controller.sendCommand('stop');
     }
-    await stopDeploymentRollout(
-      this.generateName(server, 'deployment'),
-      Namespace,
-    );
-    await controller.connect();
-    await controller.sendCommand('stop');
     await stopDeploymentRollout(
       this.generateName(server, 'deployment'),
       Namespace,

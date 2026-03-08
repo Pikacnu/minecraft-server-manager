@@ -10,11 +10,13 @@ import {
   type Variables,
 } from '@/utils/type';
 import DirectoryDisplay from '../component/directoryDisplay';
+import { useNotification } from '../contexts/notification';
 
 export default function ServerManagement() {
   const { serverInfo, currentSelectedServerId, setCurrentSelectedServerId } =
     useServers();
   const [isPending, startTransition] = useTransition();
+  const { addNotification } = useNotification();
   const [currentServerSetting, setCurrentServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> &
       Variables & { serverSettingId?: string }
@@ -201,19 +203,37 @@ export default function ServerManagement() {
                   setSetting={setNewServerSetting}
                 ></ServerSetting>
                 <button
-                  className='flex flex-row items-center gap-2 mt-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 self-end'
+                  className='flex flex-row items-center gap-2 mt-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-800 self-end cursor-pointer transition-colors'
                   onClick={() => {
                     async function submitSettings() {
-                      fetch('/api/server-instance', {
-                        method: 'PATCH',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          serverName: currentSelectedServerId,
-                          variables: newServerSetting,
-                        }),
-                      });
+                      try {
+                        const response = await fetch('/api/server-instance', {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            serverName: currentSelectedServerId,
+                            variables: newServerSetting,
+                          }),
+                        });
+                        if (response.ok) {
+                          addNotification(
+                            'Server settings updated successfully',
+                            'success',
+                          );
+                        } else {
+                          addNotification(
+                            'Failed to update server settings',
+                            'error',
+                          );
+                        }
+                      } catch (error) {
+                        addNotification(
+                          'Failed to update server settings',
+                          'error',
+                        );
+                      }
                     }
                     submitSettings();
                   }}
