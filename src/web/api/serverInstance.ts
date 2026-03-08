@@ -144,7 +144,12 @@ export async function PATCH(request: Request): Promise<Response> {
               ),
             ].join('\n')
           : modProjects.join('\n'),
-      RESOURCE_PACK: `"${filteredVariables.RESOURCE_PACK || ''}"`,
+      RESOURCE_PACK: `${
+        filteredVariables.RESOURCE_PACK &&
+        filteredVariables.RESOURCE_PACK !== ''
+          ? filteredVariables.RESOURCE_PACK
+          : ''
+      }`,
     };
 
     await patchENVConfigMap(
