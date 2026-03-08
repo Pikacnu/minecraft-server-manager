@@ -11,6 +11,7 @@ import {
 } from '@/utils/type';
 import DirectoryDisplay from '../component/directoryDisplay';
 import { useNotification } from '../contexts/notification';
+import { useConfirmDialog } from '../contexts/confirmDialog';
 import { NotificationType } from '../utils/enums';
 
 export default function ServerManagement() {
@@ -18,6 +19,7 @@ export default function ServerManagement() {
     useServers();
   const [isPending, startTransition] = useTransition();
   const { addNotification } = useNotification();
+  const { showConfirmDialog } = useConfirmDialog();
   const [currentServerSetting, setCurrentServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> &
       Variables & { serverSettingId?: string }
@@ -205,7 +207,22 @@ export default function ServerManagement() {
                 ></ServerSetting>
                 <button
                   className='flex flex-row items-center gap-2 mt-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-800 self-end cursor-pointer transition-colors'
-                  onClick={() => {
+                  onClick={async () => {
+                    const confirmed = await showConfirmDialog({
+                      title: 'Restart Server',
+                      message:
+                        'Submitting these changes will restart the server. Are you sure you want to continue?',
+                      checkboxLabel:
+                        'I understand that the server will restart',
+                      requireCheckbox: true,
+                      confirmText: 'Submit Changes',
+                      cancelText: 'Cancel',
+                    });
+
+                    if (!confirmed) {
+                      return;
+                    }
+
                     async function submitSettings() {
                       try {
                         const response = await fetch('/api/server-instance', {
@@ -353,20 +370,25 @@ export default function ServerManagement() {
                         'Invalid state: recursive delete on file',
                       );
                     }
-                    if (
-                      !confirm(
-                        `Are you sure you want to recursively delete the folder at ${path} and all its contents? This action cannot be undone.`,
-                      )
-                    )
-                      return false;
+                    const confirmed = await showConfirmDialog({
+                      title: 'Delete Folder Recursively',
+                      message: `Are you sure you want to recursively delete the folder at ${path} and all its contents?\n\nThis action cannot be undone.`,
+                      checkboxLabel:
+                        'I understand this will delete all contents permanently',
+                      requireCheckbox: true,
+                      confirmText: 'Delete',
+                      cancelText: 'Cancel',
+                    });
+                    if (!confirmed) return false;
                   }
                   if (type === DirectoryType.Directory && !recursive) {
-                    if (
-                      !confirm(
-                        `Are you sure you want to delete the folder at ${path} without deleting its contents? This may fail if the folder is not empty.`,
-                      )
-                    )
-                      return false;
+                    const confirmed = await showConfirmDialog({
+                      title: 'Delete Empty Folder',
+                      message: `Are you sure you want to delete the folder at ${path} without deleting its contents?\n\nThis may fail if the folder is not empty.`,
+                      confirmText: 'Delete',
+                      cancelText: 'Cancel',
+                    });
+                    if (!confirmed) return false;
                   }
 
                   startTransition(async () => {
@@ -396,9 +418,10 @@ export default function ServerManagement() {
                           'Delete request failed with status:',
                           response.status,
                         );
-                        alert(
+                        addNotification(
                           data.message ||
                             'Unknown error occurred during deletion.',
+                          NotificationType.Error,
                         );
                         fetchFileStructure();
                       }
@@ -468,6 +491,7 @@ export default function ServerManagement() {
                     }
                   }
                 }}
+                showConfirmDialog={showConfirmDialog}
               />
             </div>
           </div>

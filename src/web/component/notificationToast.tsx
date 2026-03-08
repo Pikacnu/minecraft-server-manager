@@ -91,13 +91,13 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   const getBackgroundColor = () => {
     switch (notification.type) {
       case NotificationType.Success:
-        return 'bg-green-100 dark:bg-green-900/30 border-green-500';
+        return 'bg-green-100 dark:bg-green-900 border-green-500';
       case NotificationType.Error:
-        return 'bg-red-100 dark:bg-red-900/30 border-red-500';
+        return 'bg-red-100 dark:bg-red-900 border-red-500';
       case NotificationType.Warning:
-        return 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-500';
+        return 'bg-yellow-100 dark:bg-yellow-900 border-yellow-500';
       case NotificationType.Info:
-        return 'bg-blue-100 dark:bg-blue-900/30 border-blue-500';
+        return 'bg-blue-100 dark:bg-blue-900 border-blue-500';
     }
   };
 

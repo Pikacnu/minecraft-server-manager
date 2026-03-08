@@ -6,6 +6,8 @@ import { MessageType, type SendMessage } from './websocket/type';
 import { rconHandler } from './websocket/rcon';
 import serverInstance from './api/serverInstance';
 import fileSystem from './api/fileSystem';
+import gateManage from './api/gateManage';
+import settings from './api/settings';
 import { serverInfoHandler } from './websocket/serverinfo';
 
 export type WebServerArguments = Partial<
@@ -25,6 +27,8 @@ export const webServer = async (args?: WebServerArguments) => {
       '/api/server-manage': serverManage,
       '/api/server-instance': serverInstance,
       '/api/file-system': fileSystem,
+      '/api/gate-manage': gateManage,
+      '/api/settings': settings,
     },
     fetch: async (request, server) => {
       const url = new URL(request.url);

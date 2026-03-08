@@ -7,6 +7,7 @@ import AddServerPopUp from '../component/addServerPopUp';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
 import { useNotification } from '../contexts/notification';
+import { useConfirmDialog } from '../contexts/confirmDialog';
 import { NotificationType } from '../utils/enums';
 
 export default function Server() {
@@ -17,6 +18,7 @@ export default function Server() {
   const { isOpen: isOpenAddServerPopUp, setIsOpen: setIsOpenAddServerPopUp } =
     useOpenServerPanel();
   const { addNotification } = useNotification();
+  const { showConfirmDialog } = useConfirmDialog();
 
   return (
     <div className='flex flex-col w-full relative gap-2'>
@@ -75,7 +77,16 @@ export default function Server() {
                   </button>
                   <button
                     className='bg-yellow-500 hover:bg-yellow-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
-                    onClick={() => {
+                    onClick={async () => {
+                      const confirmed = await showConfirmDialog({
+                        title: 'Restart Server',
+                        message: `Are you sure you want to restart "${server.name}"?\n\nThis will temporarily disconnect all players.`,
+                        confirmText: 'Restart',
+                        cancelText: 'Cancel',
+                      });
+
+                      if (!confirmed) return;
+
                       async function restartServer() {
                         try {
                           const response = await fetch('/api/server-manage', {
@@ -113,7 +124,16 @@ export default function Server() {
                   </button>
                   <button
                     className='bg-red-500 hover:bg-red-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
-                    onClick={() => {
+                    onClick={async () => {
+                      const confirmed = await showConfirmDialog({
+                        title: 'Stop Server',
+                        message: `Are you sure you want to stop "${server.name}"?\n\nThe server will be terminated and all players will be disconnected.`,
+                        confirmText: 'Stop Server',
+                        cancelText: 'Cancel',
+                      });
+
+                      if (!confirmed) return;
+
                       async function terminateServer() {
                         try {
                           const response = await fetch('/api/server-manage', {
@@ -151,7 +171,19 @@ export default function Server() {
                   </button>
                   <button
                     className='bg-gray-700 hover:bg-gray-900 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
-                    onClick={() => {
+                    onClick={async () => {
+                      const confirmed = await showConfirmDialog({
+                        title: 'Delete Server',
+                        message: `Are you sure you want to permanently delete "${server.name}"?\n\nThis will delete all server data, worlds, and configurations.\nThis action CANNOT be undone!`,
+                        checkboxLabel:
+                          'I understand this will permanently delete all server data',
+                        requireCheckbox: true,
+                        confirmText: 'Delete Permanently',
+                        cancelText: 'Cancel',
+                      });
+
+                      if (!confirmed) return;
+
                       async function deleteServer() {
                         try {
                           const response = await fetch('/api/server-instance', {

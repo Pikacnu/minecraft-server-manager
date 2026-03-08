@@ -146,6 +146,7 @@ export async function PATCH(request: Request): Promise<Response> {
           : modProjects.join('\n'),
       RESOURCE_PACK: `"${filteredVariables.RESOURCE_PACK || ''}"`,
     };
+
     await patchENVConfigMap(
       Namespace,
       `minecraft-server-env-configmap-${serverName}`,
@@ -156,12 +157,12 @@ export async function PATCH(request: Request): Promise<Response> {
     const patchOperations: Array<{
       op: 'add' | 'replace';
       path: string;
-      value: string;
+      value: any;
     }> = [
       {
-        op: 'add' as const,
-        path: '/spec/template/metadata/annotations/configUpdatedAt',
-        value: new Date().toISOString(),
+        op: 'add',
+        path: '/spec/template/metadata/annotations',
+        value: { configUpdatedAt: new Date().toISOString() },
       },
     ];
 
@@ -169,41 +170,45 @@ export async function PATCH(request: Request): Promise<Response> {
     if (filteredVariables.memoryLimit) {
       patchOperations.push(
         {
-          op: 'replace' as const,
+          op: 'add',
           path: '/spec/template/spec/containers/0/resources/limits/memory',
-          value: `${(
-            Number(filteredVariables.memoryLimit) * 1.15
-          ).toFixed()}Mi`,
+          value: `${Math.floor(
+            Number(filteredVariables.memoryLimit) * 1.15,
+          )}Mi`,
         },
         {
-          op: 'replace' as const,
+          op: 'add',
           path: '/spec/template/spec/containers/0/resources/requests/memory',
-          value: `${Number(filteredVariables.memoryLimit).toFixed()}Mi`,
+          value: `${Math.floor(Number(filteredVariables.memoryLimit))}Mi`,
         },
       );
       if (filteredVariables.cpuLimit !== undefined) {
         patchOperations.push(
           {
-            op: 'replace' as const,
+            op: 'add',
             path: '/spec/template/spec/containers/0/resources/limits/cpu',
-            value: String(filteredVariables.cpuLimit),
+            value: `${Math.floor(filteredVariables.cpuLimit * 1000)}m`,
           },
           {
-            op: 'replace' as const,
+            op: 'add',
             path: '/spec/template/spec/containers/0/resources/requests/cpu',
-            value: String((filteredVariables.cpuLimit as number) * 0.5),
+            value: `${Math.floor((filteredVariables.cpuLimit as number) * 0.5 * 1000)}m`,
           },
         );
       }
     }
 
-    await patchDeployment(
-      Namespace,
-      `minecraft-server-deployment-${serverName}`,
-      patchOperations,
-    );
-  } catch (error) {
-    console.error('Failed to update server variables:', error);
+    console.log('Patch operations for deployment:', patchOperations);
+
+    if (patchOperations.length > 1) {
+      await patchDeployment(
+        Namespace,
+        `minecraft-server-deployment-${serverName}`,
+        patchOperations,
+      );
+    }
+  } catch (error: any) {
+    console.error('Failed to update server variables: \n', error);
     return Response.json(
       { status: 'error', message: `Failed to update server variables` },
       { status: 500 },

@@ -11,7 +11,7 @@ export const PageSectionList = [
   PageSectionEnum.Home,
   PageSectionEnum.Servers,
   PageSectionEnum.ServerManagement,
-  //PageSectionEnum.Settings,
+  PageSectionEnum.Settings,
 ];
 
 const Page = createContext<{

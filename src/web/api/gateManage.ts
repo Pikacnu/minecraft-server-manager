@@ -8,7 +8,7 @@ import {
 import type { GateConfig } from '@/utils/type';
 
 // Get Gate deployment status
-export async function GET(request: Request): Promise<Response> {
+async function GET(request: Request): Promise<Response> {
   try {
     const deployment = await getDeploymentData(
       'gate-server-deployment',
@@ -40,7 +40,7 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 // Manage Gate deployment
-export async function POST(request: Request): Promise<Response> {
+async function POST(request: Request): Promise<Response> {
   try {
     const { action, config } = (await request.json()) as {
       action: 'restart' | 'updateConfig';
@@ -97,13 +97,14 @@ export async function POST(request: Request): Promise<Response> {
         );
 
         // Trigger restart to apply config
-        await patchDeployment(Namespace, 'gate-server-deployment', [
-          {
-            op: 'add',
-            path: '/spec/template/metadata/annotations/configUpdatedAt',
-            value: new Date().toISOString(),
-          },
-        ]);
+        // await patchDeployment(Namespace, 'gate-server-deployment', [
+        //   {
+        //     op: 'add',
+        //     path: '/spec/template/metadata/annotations/configUpdatedAt',
+        //     value: new Date().toISOString(),
+        //   },
+        // ]);
+        // Gate will automatically reload config without restart, so we can skip the restart step
 
         return Response.json({
           status: 'ok',
@@ -127,7 +128,7 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 // Get Gate configuration
-export async function PATCH(request: Request): Promise<Response> {
+async function PATCH(request: Request): Promise<Response> {
   try {
     const gateConfig = (await getConfigMapData(
       Namespace,
@@ -145,3 +146,9 @@ export async function PATCH(request: Request): Promise<Response> {
     );
   }
 }
+
+export default {
+  GET,
+  POST,
+  PATCH,
+};

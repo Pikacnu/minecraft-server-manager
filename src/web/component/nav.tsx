@@ -9,7 +9,7 @@ export default function Nav() {
     home: <Home></Home>,
     servers: <Server></Server>,
     serverManagement: <SquareChartGantt></SquareChartGantt>,
-    //settings: <Settings></Settings>,
+    settings: <Settings></Settings>,
   };
 
   return (

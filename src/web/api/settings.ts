@@ -16,7 +16,7 @@ import {
 } from '@/utils/config';
 
 // Return current system settings
-export async function GET(request: Request): Promise<Response> {
+async function GET(request: Request): Promise<Response> {
   try {
     const settings = {
       // Read-only ENV settings (require restart to change)
@@ -53,3 +53,7 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 }
+
+export default {
+  GET,
+};

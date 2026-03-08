@@ -33,6 +33,7 @@ export default function DirectoryDisplay({
   onFileSelect,
   onCompress,
   onUncompress,
+  showConfirmDialog,
 }: {
   fileStructure: DirectoryStructure;
   currentPath: string[];
@@ -52,6 +53,7 @@ export default function DirectoryDisplay({
   onFileSelect: (fileName: string) => void;
   onCompress: (path: string, files: string[]) => void;
   onUncompress: (path: string, zipFile: string) => void;
+  showConfirmDialog?: (options: any) => Promise<boolean>;
 }) {
   const [path, setPath] = useState<string[]>(currentPath);
   const [isOpenFile, setIsOpenFile] = useState<boolean>(false);
@@ -103,10 +105,44 @@ export default function DirectoryDisplay({
     setFileContent('');
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const [currentDirectory] = useMemo(() => {
+        let dir = fileStructure;
+        for (const segment of path) {
+          const child = dir.children?.find((c) => c.name === segment);
+          if (child && child.type === DirectoryType.Directory) {
+            dir = child;
+          } else {
+            break;
+          }
+        }
+        return [dir];
+      }, []);
+
+      const fileExists = currentDirectory.children?.some(
+        (child) => child.name === file.name,
+      );
+
+      if (fileExists && showConfirmDialog) {
+        const confirmed = await showConfirmDialog({
+          title: 'Overwrite File',
+          message: `A file named "${file.name}" already exists in this directory.\n\nDo you want to overwrite it?`,
+          confirmText: 'Overwrite',
+          cancelText: 'Cancel',
+        });
+
+        if (!confirmed) {
+          // Reset the file input
+          e.target.value = '';
+          return;
+        }
+      }
+
       handleUpload(`${[...path, file.name].join('/')}`, file);
+      // Reset the file input
+      e.target.value = '';
     }
   };
 
@@ -270,7 +306,52 @@ export default function DirectoryDisplay({
             className='hidden'
             onChange={onFileChange}
           />
-          <div className='flex gap-2'>
+          <div className='flex gap-2 items-center'>
+            <label className='flex items-center gap-2 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={
+                  currentDirectory.children &&
+                  currentDirectory.children.length > 0 &&
+                  currentDirectory.children.every((item) =>
+                    selectedFiles.includes(item.name),
+                  )
+                }
+                ref={(el) => {
+                  if (el) {
+                    const allFileNames =
+                      currentDirectory.children?.map((item) => item.name) || [];
+                    const selectedInCurrentDir = allFileNames.filter((name) =>
+                      selectedFiles.includes(name),
+                    );
+                    el.indeterminate =
+                      selectedInCurrentDir.length > 0 &&
+                      selectedInCurrentDir.length < allFileNames.length;
+                  }
+                }}
+                onChange={(e) => {
+                  const allFileNames =
+                    currentDirectory.children?.map((item) => item.name) || [];
+                  if (e.target.checked) {
+                    // Select all files in current directory that aren't already selected
+                    allFileNames.forEach((name) => {
+                      if (!selectedFiles.includes(name)) {
+                        onFileSelect(name);
+                      }
+                    });
+                  } else {
+                    // Deselect all files in current directory
+                    allFileNames.forEach((name) => {
+                      if (selectedFiles.includes(name)) {
+                        onFileSelect(name);
+                      }
+                    });
+                  }
+                }}
+                className='w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+              />
+              <span className='text-sm'>Select All</span>
+            </label>
             <button
               onClick={() => onCompress(path.join('/'), selectedFiles)}
               disabled={selectedFiles.length === 0}
@@ -281,9 +362,8 @@ export default function DirectoryDisplay({
               onClick={() => {
                 if (selectedFiles.length === 1) {
                   onUncompress(path.join('/'), selectedFiles[0]!);
-                } else {
-                  alert('Please select exactly one zip file to uncompress.');
                 }
+                // If not exactly 1 file selected, button is disabled anyway
               }}
               disabled={selectedFiles.length !== 1}
             >
@@ -386,8 +466,8 @@ export default function DirectoryDisplay({
                     {item.file?.size
                       ? `${(item.file.size / 1024).toFixed(2)} KB`
                       : item.type === DirectoryType.Directory
-                      ? `${item.children ? item.children.length : 0} items`
-                      : ''}
+                        ? `${item.children ? item.children.length : 0} items`
+                        : ''}
                   </span>
                   <button
                     onClick={(e) => {

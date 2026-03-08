@@ -1006,7 +1006,7 @@ export async function patchDeployment(
   }[],
 ) {
   const options = {
-    headers: { 'Content-type': 'application/merge-patch+json' },
+    headers: { 'Content-type': 'application/json-patch+json' },
   };
   try {
     await appsV1Api.patchNamespacedDeployment({

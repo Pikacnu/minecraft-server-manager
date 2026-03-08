@@ -15,6 +15,7 @@ import { OpenServerPanelProvider } from '../contexts/addServerPanel';
 import { WebSocketProvider } from '../contexts/websocket';
 import { NotificationProvider } from '../contexts/notification';
 import { SettingsProvider } from '../contexts/settings';
+import { ConfirmDialogProvider } from '../contexts/confirmDialog';
 import { isPreviewMode } from '@/utils/config';
 
 async function enableMocking() {
@@ -35,15 +36,17 @@ const app = (
   <StrictMode>
     <SettingsProvider>
       <NotificationProvider>
-        <WebSocketProvider>
-          <PageProvider>
-            <ServerProvider>
-              <OpenServerPanelProvider>
-                <App />
-              </OpenServerPanelProvider>
-            </ServerProvider>
-          </PageProvider>
-        </WebSocketProvider>
+        <ConfirmDialogProvider>
+          <WebSocketProvider>
+            <PageProvider>
+              <ServerProvider>
+                <OpenServerPanelProvider>
+                  <App />
+                </OpenServerPanelProvider>
+              </ServerProvider>
+            </PageProvider>
+          </WebSocketProvider>
+        </ConfirmDialogProvider>
       </NotificationProvider>
     </SettingsProvider>
   </StrictMode>
