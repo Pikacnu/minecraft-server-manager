@@ -7,6 +7,7 @@ import AddServerPopUp from '../component/addServerPopUp';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
 import { useNotification } from '../contexts/notification';
+import { NotificationType } from '../utils/enums';
 
 export default function Server() {
   const { serverInfo, setCurrentSelectedServerId, setServerInfo } =
@@ -90,18 +91,18 @@ export default function Server() {
                           if (response.ok) {
                             addNotification(
                               `Server "${server.name}" is restarting`,
-                              'success',
+                              NotificationType.Success,
                             );
                           } else {
                             addNotification(
                               `Failed to restart "${server.name}"`,
-                              'error',
+                              NotificationType.Error,
                             );
                           }
                         } catch (error) {
                           addNotification(
                             `Failed to restart "${server.name}"`,
-                            'error',
+                            NotificationType.Error,
                           );
                         }
                       }
@@ -128,18 +129,18 @@ export default function Server() {
                           if (response.ok) {
                             addNotification(
                               `Server "${server.name}" is stopping`,
-                              'success',
+                              NotificationType.Success,
                             );
                           } else {
                             addNotification(
                               `Failed to stop "${server.name}"`,
-                              'error',
+                              NotificationType.Error,
                             );
                           }
                         } catch (error) {
                           addNotification(
                             `Failed to stop "${server.name}"`,
-                            'error',
+                            NotificationType.Error,
                           );
                         }
                       }
@@ -165,7 +166,7 @@ export default function Server() {
                           if (response.ok) {
                             addNotification(
                               `Server "${server.name}" deleted successfully`,
-                              'success',
+                              NotificationType.Success,
                             );
                             setServerInfo((prev) =>
                               prev.filter((s) => s.id !== server.id),
@@ -173,13 +174,13 @@ export default function Server() {
                           } else {
                             addNotification(
                               `Failed to delete "${server.name}"`,
-                              'error',
+                              NotificationType.Error,
                             );
                           }
                         } catch (error) {
                           addNotification(
                             `Failed to delete "${server.name}"`,
-                            'error',
+                            NotificationType.Error,
                           );
                         }
                       }

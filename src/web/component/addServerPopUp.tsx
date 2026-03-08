@@ -6,6 +6,7 @@ import ServerSetting from './serverSetting';
 import { useState } from 'react';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { useNotification } from '../contexts/notification';
+import { NotificationType } from '../utils/enums';
 
 export default function AddServerPopUp() {
   const [serverSettingSaver, setServerSettingSaver] = useState<
@@ -25,15 +26,18 @@ export default function AddServerPopUp() {
       if (response.ok) {
         addNotification(
           `Server \"${serverSettingSaver.SERVER_NAME}\" created successfully`,
-          'success',
+          NotificationType.Success,
         );
         setIsOpen(false);
       } else {
         const data = await response.json();
-        addNotification(data.message || 'Failed to create server', 'error');
+        addNotification(
+          data.message || 'Failed to create server',
+          NotificationType.Error,
+        );
       }
     } catch (error) {
-      addNotification('Failed to create server', 'error');
+      addNotification('Failed to create server', NotificationType.Error);
     }
   };
   return (

@@ -1,18 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useNotification } from '../contexts/notification';
+import { useSettings } from '../contexts/settings';
 import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
+import { NotificationPosition, NotificationType } from '../utils/enums';
 
 const NotificationToast: React.FC = () => {
   const { notifications, removeNotification } = useNotification();
+  const { uiPreferences } = useSettings();
 
   if (notifications.length === 0) return null;
 
+  const getPositionClass = () => {
+    switch (uiPreferences.notificationPosition) {
+      case NotificationPosition.TopLeft:
+        return 'fixed top-4 left-4 z-50 flex flex-col gap-2';
+      case NotificationPosition.TopRight:
+        return 'fixed top-4 right-4 z-50 flex flex-col gap-2';
+      case NotificationPosition.BottomLeft:
+        return 'fixed bottom-4 left-4 z-50 flex flex-col gap-2';
+      case NotificationPosition.BottomRight:
+        return 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+      case NotificationPosition.BottomCenter:
+        return 'fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2';
+      case NotificationPosition.TopCenter:
+      default:
+        return 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2';
+    }
+  };
+
   return (
-    <div className='fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2'>
+    <div className={getPositionClass()}>
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
           notification={notification}
+          duration={uiPreferences.notificationDuration}
           onClose={() => removeNotification(notification.id)}
         />
       ))}
@@ -24,22 +46,24 @@ interface NotificationItemProps {
   notification: {
     id: string;
     message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
+    type: NotificationType;
     duration?: number;
   };
+  duration: number;
   onClose: () => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
+  duration,
   onClose,
 }) => {
   const [progress, setProgress] = useState(100);
-  const duration = notification.duration || 2000;
+  const effectiveDuration = notification.duration || duration;
 
   useEffect(() => {
     const interval = 10; // Update every 10ms
-    const decrement = (100 / duration) * interval;
+    const decrement = (100 / effectiveDuration) * interval;
 
     const timer = setInterval(() => {
       setProgress((prev) => {
@@ -49,43 +73,43 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }, interval);
 
     return () => clearInterval(timer);
-  }, [duration]);
+  }, [effectiveDuration]);
 
   const getIcon = () => {
     switch (notification.type) {
-      case 'success':
+      case NotificationType.Success:
         return <CheckCircle className='w-5 h-5 text-green-500' />;
-      case 'error':
+      case NotificationType.Error:
         return <XCircle className='w-5 h-5 text-red-500' />;
-      case 'warning':
+      case NotificationType.Warning:
         return <AlertCircle className='w-5 h-5 text-yellow-500' />;
-      case 'info':
+      case NotificationType.Info:
         return <Info className='w-5 h-5 text-blue-500' />;
     }
   };
 
   const getBackgroundColor = () => {
     switch (notification.type) {
-      case 'success':
+      case NotificationType.Success:
         return 'bg-green-100 dark:bg-green-900/30 border-green-500';
-      case 'error':
+      case NotificationType.Error:
         return 'bg-red-100 dark:bg-red-900/30 border-red-500';
-      case 'warning':
+      case NotificationType.Warning:
         return 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-500';
-      case 'info':
+      case NotificationType.Info:
         return 'bg-blue-100 dark:bg-blue-900/30 border-blue-500';
     }
   };
 
   const getProgressColor = () => {
     switch (notification.type) {
-      case 'success':
+      case NotificationType.Success:
         return 'bg-green-500';
-      case 'error':
+      case NotificationType.Error:
         return 'bg-red-500';
-      case 'warning':
+      case NotificationType.Warning:
         return 'bg-yellow-500';
-      case 'info':
+      case NotificationType.Info:
         return 'bg-blue-500';
     }
   };

@@ -5,12 +5,13 @@ import Server from '../page/server';
 import { Suspense } from 'react';
 import { Loader } from 'lucide-react';
 import ServerManagement from '../page/serverManagement';
+import Settings from '../page/settings';
 import NotificationToast from '../component/notificationToast';
 
 const sectionToComponent: Record<PageSectionEnum, React.ReactElement> = {
   [PageSectionEnum.Home]: <Home />,
   [PageSectionEnum.Servers]: <Server />,
-  [PageSectionEnum.Settings]: <div className='pt-16'>Settings Page</div>,
+  [PageSectionEnum.Settings]: <Settings />,
   [PageSectionEnum.ServerManagement]: <ServerManagement />,
 };
 

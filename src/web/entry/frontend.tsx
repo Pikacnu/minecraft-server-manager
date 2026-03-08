@@ -14,6 +14,7 @@ import { ServerProvider } from '../contexts/servers';
 import { OpenServerPanelProvider } from '../contexts/addServerPanel';
 import { WebSocketProvider } from '../contexts/websocket';
 import { NotificationProvider } from '../contexts/notification';
+import { SettingsProvider } from '../contexts/settings';
 import { isPreviewMode } from '@/utils/config';
 
 async function enableMocking() {
@@ -32,17 +33,19 @@ async function enableMocking() {
 const elem = document.getElementById('root')!;
 const app = (
   <StrictMode>
-    <NotificationProvider>
-      <WebSocketProvider>
-        <PageProvider>
-          <ServerProvider>
-            <OpenServerPanelProvider>
-              <App />
-            </OpenServerPanelProvider>
-          </ServerProvider>
-        </PageProvider>
-      </WebSocketProvider>
-    </NotificationProvider>
+    <SettingsProvider>
+      <NotificationProvider>
+        <WebSocketProvider>
+          <PageProvider>
+            <ServerProvider>
+              <OpenServerPanelProvider>
+                <App />
+              </OpenServerPanelProvider>
+            </ServerProvider>
+          </PageProvider>
+        </WebSocketProvider>
+      </NotificationProvider>
+    </SettingsProvider>
   </StrictMode>
 );
 

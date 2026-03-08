@@ -5,8 +5,11 @@ import React, {
   useCallback,
   type ReactNode,
 } from 'react';
+import { useSettings } from './settings';
+import { NotificationType } from '../utils/enums';
 
-export type NotificationType = 'success' | 'error' | 'info' | 'warning';
+// Re-export for convenience
+export { NotificationType };
 
 export interface Notification {
   id: string;
@@ -47,24 +50,33 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   children,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { uiPreferences } = useSettings();
 
   const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((notif) => notif.id !== id));
   }, []);
 
   const addNotification = useCallback(
-    (message: string, type: NotificationType, duration: number = 2000) => {
+    (message: string, type: NotificationType, duration?: number) => {
       const id = Math.random().toString(36).substring(2, 9);
-      const notification: Notification = { id, message, type, duration };
+      // Use default duration from settings if not provided
+      const notificationDuration =
+        duration || uiPreferences.notificationDuration;
+      const notification: Notification = {
+        id,
+        message,
+        type,
+        duration: notificationDuration,
+      };
 
       setNotifications((prev) => [...prev, notification]);
 
       // Auto remove after duration
       setTimeout(() => {
         removeNotification(id);
-      }, duration);
+      }, notificationDuration);
     },
-    [removeNotification],
+    [removeNotification, uiPreferences.notificationDuration],
   );
 
   return (

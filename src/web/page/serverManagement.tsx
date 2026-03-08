@@ -11,6 +11,7 @@ import {
 } from '@/utils/type';
 import DirectoryDisplay from '../component/directoryDisplay';
 import { useNotification } from '../contexts/notification';
+import { NotificationType } from '../utils/enums';
 
 export default function ServerManagement() {
   const { serverInfo, currentSelectedServerId, setCurrentSelectedServerId } =
@@ -220,18 +221,18 @@ export default function ServerManagement() {
                         if (response.ok) {
                           addNotification(
                             'Server settings updated successfully',
-                            'success',
+                            NotificationType.Success,
                           );
                         } else {
                           addNotification(
                             'Failed to update server settings',
-                            'error',
+                            NotificationType.Error,
                           );
                         }
                       } catch (error) {
                         addNotification(
                           'Failed to update server settings',
-                          'error',
+                          NotificationType.Error,
                         );
                       }
                     }
