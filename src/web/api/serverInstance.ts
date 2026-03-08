@@ -113,7 +113,7 @@ export async function PATCH(request: Request): Promise<Response> {
           value !== '' &&
           !ShouldntBeChanged.includes(key),
       ),
-    );
+    ) as Partial<Variables & MinecraftServerDeploymentsGeneratorArguments>;
 
     const modProjects = variables.MODRINTH_PROJECTS
       ? variables.MODRINTH_PROJECTS.split(',')
@@ -181,17 +181,17 @@ export async function PATCH(request: Request): Promise<Response> {
           value: `${Number(filteredVariables.memoryLimit).toFixed()}Mi`,
         },
       );
-      if (filteredVariables.cpu !== undefined) {
+      if (filteredVariables.cpuLimit !== undefined) {
         patchOperations.push(
           {
             op: 'replace' as const,
             path: '/spec/template/spec/containers/0/resources/limits/cpu',
-            value: String(filteredVariables.cpu),
+            value: String(filteredVariables.cpuLimit),
           },
           {
             op: 'replace' as const,
             path: '/spec/template/spec/containers/0/resources/requests/cpu',
-            value: String(filteredVariables.cpu),
+            value: String((filteredVariables.cpuLimit as number) * 0.5),
           },
         );
       }

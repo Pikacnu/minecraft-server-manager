@@ -511,20 +511,26 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
 ];
 
 export const FIELD_TYPE_MAP: Record<string, FieldType> =
-  FIELD_DEFINITIONS.reduce((acc, field) => {
-    acc[field.key] = field.type;
-    return acc;
-  }, {} as Record<string, FieldType>);
+  FIELD_DEFINITIONS.reduce(
+    (acc, field) => {
+      acc[field.key] = field.type;
+      return acc;
+    },
+    {} as Record<string, FieldType>,
+  );
 
 export const FIELDS_BY_CATEGORY: [string, FieldDefinition[]][] = Object.entries(
-  FIELD_DEFINITIONS.reduce((acc, field) => {
-    const category = field.category;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(field);
-    return acc;
-  }, {} as Record<string, FieldDefinition[]>),
+  FIELD_DEFINITIONS.reduce(
+    (acc, field) => {
+      const category = field.category;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(field);
+      return acc;
+    },
+    {} as Record<string, FieldDefinition[]>,
+  ),
 );
 
 export enum DirectoryType {
