@@ -181,7 +181,9 @@ export default function ServerManagement() {
       <hr className='my-4 border-gray-300' />
       <div className='flex grow flex-col'>
         {currentSelectedServerId === '' ? (
-          <div className='text-gray-500 dark:text-gray-400'>No server selected.</div>
+          <div className='text-gray-500 dark:text-gray-400'>
+            No server selected.
+          </div>
         ) : (
           <section className='flex grow flex-col rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
             <div className='mb-3 flex text-gray-700 dark:text-gray-200'>

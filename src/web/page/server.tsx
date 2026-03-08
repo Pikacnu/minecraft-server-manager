@@ -36,7 +36,9 @@ export default function Server() {
         </h1>
 
         {serverInfo.length === 0 ? (
-          <div className='text-gray-500 dark:text-gray-400'>No servers available.</div>
+          <div className='text-gray-500 dark:text-gray-400'>
+            No servers available.
+          </div>
         ) : (
           <div className='space-y-4'>
             {serverInfo.map((server) => (
@@ -54,11 +56,14 @@ export default function Server() {
 
                   <div className='flex gap-4 text-sm'>
                     <div>
-                      Status: <span className='font-medium'>{server.status}</span>
+                      Status:{' '}
+                      <span className='font-medium'>{server.status}</span>
                     </div>
                     <div>
                       Players Online:{' '}
-                      <span className='font-medium'>{server.playersOnline}</span>
+                      <span className='font-medium'>
+                        {server.playersOnline}
+                      </span>
                     </div>
                   </div>
                 </div>

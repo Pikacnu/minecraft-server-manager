@@ -471,7 +471,8 @@ export const FIELD_METADATA: Record<string, FieldMetadata> = {
   'config.onlineModeKickExistingPlayers': {
     type: 'boolean',
     label: 'Kick Existing Online Players',
-    description: 'Kick existing player when online-mode player with same name joins',
+    description:
+      'Kick existing player when online-mode player with same name joins',
     defaultValue: false,
   },
   'config.debug': {
@@ -581,7 +582,10 @@ function normalizeSuggestionPath(path: string): string {
   return path.replace(/\.+$/g, '').trim();
 }
 
-function createFallbackObjectMetadata(key: string, childCount: number): FieldMetadata {
+function createFallbackObjectMetadata(
+  key: string,
+  childCount: number,
+): FieldMetadata {
   return {
     type: 'object',
     label: key,
@@ -622,7 +626,8 @@ export function getAvailableFieldSuggestions(path: string): FieldSuggestion[] {
     if (isReadOnlyField(directPath)) return;
 
     const metadata =
-      FIELD_METADATA[directPath] ?? createFallbackObjectMetadata(key, paths.length);
+      FIELD_METADATA[directPath] ??
+      createFallbackObjectMetadata(key, paths.length);
 
     suggestions.push({
       key,

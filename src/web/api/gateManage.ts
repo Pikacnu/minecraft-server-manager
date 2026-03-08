@@ -122,7 +122,7 @@ async function POST(request: Request): Promise<Response> {
             const pathParts = readonlyPath.split('.');
             let currentValue: any = currentConfig;
             let newValue: any = validatedConfig;
-            
+
             for (const part of pathParts) {
               currentValue = currentValue?.[part];
               newValue = newValue?.[part];

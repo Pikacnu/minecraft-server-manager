@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Server, Activity, Edit3, Save, Zap, Trash2 } from 'lucide-react';
+import {
+  RefreshCw,
+  Server,
+  Activity,
+  Edit3,
+  Save,
+  Zap,
+  Trash2,
+} from 'lucide-react';
 import { useNotification } from '../contexts/notification';
 import { useConfirmDialog } from '../contexts/confirmDialog';
 import { useServers } from '../contexts/servers';
@@ -35,7 +43,13 @@ interface JsonObject {
   [key: string]: JsonValue;
 }
 
-type AddFieldType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'null';
+type AddFieldType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'array'
+  | 'null';
 type AddFieldDraft = {
   key: string;
   type: AddFieldType;
@@ -48,7 +62,9 @@ const defaultAddFieldDraft: AddFieldDraft = {
   value: '',
 };
 
-function mapFieldTypeToDraftType(type: FieldSuggestion['metadata']['type']): AddFieldType {
+function mapFieldTypeToDraftType(
+  type: FieldSuggestion['metadata']['type'],
+): AddFieldType {
   if (type === 'number') return 'number';
   if (type === 'boolean') return 'boolean';
   if (type === 'object') return 'object';
@@ -63,7 +79,11 @@ function createDraftFromSuggestion(
   const suggestedType = mapFieldTypeToDraftType(suggestion.metadata.type);
   const defaultValue = suggestion.metadata.defaultValue;
 
-  if (suggestedType === 'object' || suggestedType === 'array' || suggestedType === 'null') {
+  if (
+    suggestedType === 'object' ||
+    suggestedType === 'array' ||
+    suggestedType === 'null'
+  ) {
     return {
       key: suggestion.key,
       type: suggestedType,
@@ -191,7 +211,10 @@ export default function GateManagement() {
       }
     } catch (error) {
       console.error('Failed to fetch Gate config:', error);
-      addNotification('Failed to load Gate configuration', NotificationType.Error);
+      addNotification(
+        'Failed to load Gate configuration',
+        NotificationType.Error,
+      );
     }
   };
 
@@ -342,10 +365,16 @@ export default function GateManagement() {
       });
 
       if (response.ok) {
-        addNotification('Gate server restart initiated', NotificationType.Success);
+        addNotification(
+          'Gate server restart initiated',
+          NotificationType.Success,
+        );
         setTimeout(fetchGateStatus, 2000);
       } else {
-        addNotification('Failed to restart Gate server', NotificationType.Error);
+        addNotification(
+          'Failed to restart Gate server',
+          NotificationType.Error,
+        );
       }
     } catch (error) {
       addNotification('Failed to restart Gate server', NotificationType.Error);
@@ -398,7 +427,10 @@ export default function GateManagement() {
       });
 
       if (response.ok) {
-        addNotification('Gate configuration updated successfully', NotificationType.Success);
+        addNotification(
+          'Gate configuration updated successfully',
+          NotificationType.Success,
+        );
         setIsEditingConfig(false);
         setGateConfig(finalConfig);
         setEditableConfig(deepClone(finalConfig));
@@ -411,7 +443,10 @@ export default function GateManagement() {
         );
       }
     } catch (error) {
-      addNotification('Failed to update Gate configuration', NotificationType.Error);
+      addNotification(
+        'Failed to update Gate configuration',
+        NotificationType.Error,
+      );
     } finally {
       setIsSaving(false);
     }
@@ -471,7 +506,8 @@ export default function GateManagement() {
             }}
             onBlur={() => {
               if (readOnly) return;
-              const currentDraft = arrayDrafts[path] ?? JSON.stringify(value, null, 2);
+              const currentDraft =
+                arrayDrafts[path] ?? JSON.stringify(value, null, 2);
               try {
                 const parsed = JSON.parse(currentDraft) as JsonValue;
                 if (!Array.isArray(parsed)) {
@@ -480,15 +516,22 @@ export default function GateManagement() {
 
                 // For config.try array, check if panel-controlled servers are being removed
                 if (path === 'config.try') {
-                  const parsedTry = parsed as (string | number | boolean | null)[];
+                  const parsedTry = parsed as (
+                    | string
+                    | number
+                    | boolean
+                    | null
+                  )[];
                   const panelControlledServers = serverInfo.map((s) => s.name);
-                  const originalTry = (value as (string | number | boolean | null)[]) || [];
+                  const originalTry =
+                    (value as (string | number | boolean | null)[]) || [];
                   const removedServers = originalTry.filter(
                     (s) => s !== null && !parsedTry.includes(s),
                   );
                   const unauthorizedRemovals = removedServers.filter(
                     (name) =>
-                      name !== null && panelControlledServers.includes(name as string),
+                      name !== null &&
+                      panelControlledServers.includes(name as string),
                   );
 
                   if (unauthorizedRemovals.length > 0) {
@@ -545,8 +588,15 @@ export default function GateManagement() {
               const childPath = `${path}.${childKey}`;
               const isPanelControlled = isPanelControlledItem(path, childKey);
               return (
-                <div key={childPath} className='relative group'>
-                  {renderValueEditor(childKey, childValue as JsonValue, childPath)}
+                <div
+                  key={childPath}
+                  className='relative group'
+                >
+                  {renderValueEditor(
+                    childKey,
+                    childValue as JsonValue,
+                    childPath,
+                  )}
                   {!readOnly && !isPanelControlled && (
                     <button
                       type='button'
@@ -599,7 +649,10 @@ export default function GateManagement() {
                   >
                     <option value=''>Select a suggested field...</option>
                     {availableSuggestions.map((suggestion) => (
-                      <option key={suggestion.path} value={suggestion.key}>
+                      <option
+                        key={suggestion.path}
+                        value={suggestion.key}
+                      >
                         {suggestion.metadata.label
                           ? `${suggestion.metadata.label} (${suggestion.key})`
                           : suggestion.key}
@@ -614,7 +667,9 @@ export default function GateManagement() {
                   type='text'
                   placeholder='key'
                   value={addDraft.key}
-                  list={keySuggestions.length > 0 ? suggestionListId : undefined}
+                  list={
+                    keySuggestions.length > 0 ? suggestionListId : undefined
+                  }
                   className='w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-900'
                   onChange={(e) => {
                     const next = e.target.value;
@@ -627,7 +682,10 @@ export default function GateManagement() {
                 {keySuggestions.length > 0 && (
                   <datalist id={suggestionListId}>
                     {keySuggestions.map((suggestedKey) => (
-                      <option key={suggestedKey} value={suggestedKey} />
+                      <option
+                        key={suggestedKey}
+                        value={suggestedKey}
+                      />
                     ))}
                   </datalist>
                 )}
@@ -682,7 +740,8 @@ export default function GateManagement() {
               {selectedSuggestion && (
                 <div className='mt-2 rounded-md bg-blue-50 p-2 text-xs text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'>
                   <div className='font-medium'>
-                    {selectedSuggestion.metadata.label ?? selectedSuggestion.key}
+                    {selectedSuggestion.metadata.label ??
+                      selectedSuggestion.key}
                   </div>
                   {selectedSuggestion.metadata.description && (
                     <div>{selectedSuggestion.metadata.description}</div>
@@ -704,7 +763,7 @@ export default function GateManagement() {
     if (typeof value === 'boolean') {
       const metadata = getFieldMetadata(path);
       const defaultValue = getFieldDefault(path);
-      
+
       return (
         <div className='flex flex-col gap-2'>
           <div className='flex items-center justify-between'>
@@ -746,7 +805,7 @@ export default function GateManagement() {
     if (typeof value === 'number') {
       const metadata = getFieldMetadata(path);
       const defaultValue = getFieldDefault(path);
-      
+
       return (
         <div className='flex flex-col gap-2'>
           <div className='flex items-center justify-between'>
@@ -797,7 +856,7 @@ export default function GateManagement() {
     if (fieldOptions && fieldOptions.length > 0) {
       const metadata = getFieldMetadata(path);
       const defaultValue = getFieldDefault(path);
-      
+
       return (
         <div className='flex flex-col gap-2'>
           <div className='flex items-center justify-between'>
@@ -817,7 +876,10 @@ export default function GateManagement() {
                 }}
               >
                 {fieldOptions.map((option) => (
-                  <option key={String(option.value)} value={String(option.value)}>
+                  <option
+                    key={String(option.value)}
+                    value={String(option.value)}
+                  >
                     {option.label}
                   </option>
                 ))}
@@ -1022,9 +1084,13 @@ export default function GateManagement() {
           </div>
 
           <div className='space-y-4'>
-            {Object.entries(editableConfig as JsonObject).map(([key, value]) => (
-              <div key={key}>{renderValueEditor(key, value as JsonValue, key)}</div>
-            ))}
+            {Object.entries(editableConfig as JsonObject).map(
+              ([key, value]) => (
+                <div key={key}>
+                  {renderValueEditor(key, value as JsonValue, key)}
+                </div>
+              ),
+            )}
           </div>
         </div>
       )}
