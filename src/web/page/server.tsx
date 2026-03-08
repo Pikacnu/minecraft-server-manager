@@ -1,8 +1,6 @@
 import { useServers } from '../contexts/servers';
 import { CirclePlus, SquarePen, RotateCcw, Power, Trash } from 'lucide-react';
 import Rcon from './../component/rcon';
-import ServerSetting from './../component/serverSetting';
-import { useState } from 'react';
 import AddServerPopUp from '../component/addServerPopUp';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
@@ -14,69 +12,70 @@ export default function Server() {
   const { serverInfo, setCurrentSelectedServerId, setServerInfo } =
     useServers();
   const { setCurrentSection } = usePage();
-  const [serverSettingSaver, setServerSettingSaver] = useState({});
   const { isOpen: isOpenAddServerPopUp, setIsOpen: setIsOpenAddServerPopUp } =
     useOpenServerPanel();
   const { addNotification } = useNotification();
   const { showConfirmDialog } = useConfirmDialog();
 
   return (
-    <div className='flex flex-col w-full relative gap-2'>
+    <div className='flex w-full flex-col gap-4 p-4'>
       {isOpenAddServerPopUp && <AddServerPopUp />}
-      <div className='flex flex-row justify-between m-4 rounded-lg pl-4 pr-4'>
-        <div></div>
+
+      <div className='flex items-center justify-end'>
         <button
-          className=' p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 flex flex-row items-center gap-2'
+          className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700'
           onClick={() => setIsOpenAddServerPopUp(true)}
         >
-          <CirclePlus /> Add Server
+          <CirclePlus className='h-4 w-4' /> Add Server
         </button>
       </div>
-      <div className='flex flex-col grow'>
-        <div className='flex flex-col m-4 rounded-lg p-4 grow gap-4'>
-          <div className='text-2xl font-bold mb-8 border-b border-gray-300'>
-            Server Management
-          </div>
-          {serverInfo.length === 0 ? (
-            <div className='text-gray-500'>No servers available.</div>
-          ) : (
-            serverInfo.map((server) => (
-              <div
+
+      <section className='rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+        <h1 className='mb-6 border-b border-gray-300 pb-3 text-2xl font-bold dark:border-gray-700'>
+          Server Management
+        </h1>
+
+        {serverInfo.length === 0 ? (
+          <div className='text-gray-500 dark:text-gray-400'>No servers available.</div>
+        ) : (
+          <div className='space-y-4'>
+            {serverInfo.map((server) => (
+              <article
                 key={server.id}
-                className='flex flex-col justify-between items-center py-2 border-2 p-2 rounded-lg bg-gray-500/40 '
+                className='rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50'
               >
-                <div className='flex flex-row justify-between w-full border-b border-gray-300'>
-                  <div className='flex flex-col'>
+                <div className='flex flex-wrap items-center justify-between gap-3 border-b border-gray-300 pb-2 dark:border-gray-700'>
+                  <div>
                     <div className='text-lg font-semibold'>{server.name}</div>
                     <div className='text-sm text-gray-500 dark:text-gray-400'>
                       {server.address}
                     </div>
                   </div>
-                  <div className='flex flex-row items-center gap-4'>
-                    <div className='text-sm'>
-                      Status:{' '}
-                      <span className='font-medium'>{server.status}</span>
+
+                  <div className='flex gap-4 text-sm'>
+                    <div>
+                      Status: <span className='font-medium'>{server.status}</span>
                     </div>
-                    <div className='text-sm'>
+                    <div>
                       Players Online:{' '}
-                      <span className='font-medium'>
-                        {server.playersOnline}
-                      </span>
+                      <span className='font-medium'>{server.playersOnline}</span>
                     </div>
                   </div>
                 </div>
-                <div className='flex flex-row justify-around *:p-2 *:border *:border-gray-300 rounded-md mt-2 *:rounded-lg w-full *:select-none'>
+
+                <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4'>
                   <button
-                    className='bg-blue-500 hover:bg-blue-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
+                    className='inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700'
                     onClick={() => {
                       setCurrentSelectedServerId?.(server.id);
                       setCurrentSection(PageSectionEnum.ServerManagement);
                     }}
                   >
-                    <SquarePen /> Edit
+                    <SquarePen className='h-4 w-4' /> Edit
                   </button>
+
                   <button
-                    className='bg-yellow-500 hover:bg-yellow-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
+                    className='inline-flex items-center justify-center gap-2 rounded-md bg-yellow-500 px-3 py-2 text-white transition-colors hover:bg-yellow-600'
                     onClick={async () => {
                       const confirmed = await showConfirmDialog({
                         title: 'Restart Server',
@@ -87,43 +86,39 @@ export default function Server() {
 
                       if (!confirmed) return;
 
-                      async function restartServer() {
-                        try {
-                          const response = await fetch('/api/server-manage', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              action: 'restart',
-                              serverName: server.name,
-                            }),
-                          });
-                          if (response.ok) {
-                            addNotification(
-                              `Server "${server.name}" is restarting`,
-                              NotificationType.Success,
-                            );
-                          } else {
-                            addNotification(
-                              `Failed to restart "${server.name}"`,
-                              NotificationType.Error,
-                            );
-                          }
-                        } catch (error) {
-                          addNotification(
-                            `Failed to restart "${server.name}"`,
-                            NotificationType.Error,
-                          );
-                        }
+                      try {
+                        const response = await fetch('/api/server-manage', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            action: 'restart',
+                            serverName: server.name,
+                          }),
+                        });
+
+                        addNotification(
+                          response.ok
+                            ? `Server "${server.name}" is restarting`
+                            : `Failed to restart "${server.name}"`,
+                          response.ok
+                            ? NotificationType.Success
+                            : NotificationType.Error,
+                        );
+                      } catch (error) {
+                        addNotification(
+                          `Failed to restart "${server.name}"`,
+                          NotificationType.Error,
+                        );
                       }
-                      restartServer();
                     }}
                   >
-                    <RotateCcw /> Restart
+                    <RotateCcw className='h-4 w-4' /> Restart
                   </button>
+
                   <button
-                    className='bg-red-500 hover:bg-red-700 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
+                    className='inline-flex items-center justify-center gap-2 rounded-md bg-red-500 px-3 py-2 text-white transition-colors hover:bg-red-600'
                     onClick={async () => {
                       const confirmed = await showConfirmDialog({
                         title: 'Stop Server',
@@ -134,43 +129,39 @@ export default function Server() {
 
                       if (!confirmed) return;
 
-                      async function terminateServer() {
-                        try {
-                          const response = await fetch('/api/server-manage', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              action: 'stop',
-                              serverName: server.name,
-                            }),
-                          });
-                          if (response.ok) {
-                            addNotification(
-                              `Server "${server.name}" is stopping`,
-                              NotificationType.Success,
-                            );
-                          } else {
-                            addNotification(
-                              `Failed to stop "${server.name}"`,
-                              NotificationType.Error,
-                            );
-                          }
-                        } catch (error) {
-                          addNotification(
-                            `Failed to stop "${server.name}"`,
-                            NotificationType.Error,
-                          );
-                        }
+                      try {
+                        const response = await fetch('/api/server-manage', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            action: 'stop',
+                            serverName: server.name,
+                          }),
+                        });
+
+                        addNotification(
+                          response.ok
+                            ? `Server "${server.name}" is stopping`
+                            : `Failed to stop "${server.name}"`,
+                          response.ok
+                            ? NotificationType.Success
+                            : NotificationType.Error,
+                        );
+                      } catch (error) {
+                        addNotification(
+                          `Failed to stop "${server.name}"`,
+                          NotificationType.Error,
+                        );
                       }
-                      terminateServer();
                     }}
                   >
-                    <Power /> Terminate
+                    <Power className='h-4 w-4' /> Terminate
                   </button>
+
                   <button
-                    className='bg-gray-700 hover:bg-gray-900 text-white p-2 flex flex-row items-center gap-2 rounded-md cursor-pointer transition-colors'
+                    className='inline-flex items-center justify-center gap-2 rounded-md bg-gray-700 px-3 py-2 text-white transition-colors hover:bg-gray-900 dark:bg-gray-600 dark:hover:bg-gray-500'
                     onClick={async () => {
                       const confirmed = await showConfirmDialog({
                         title: 'Delete Server',
@@ -184,50 +175,51 @@ export default function Server() {
 
                       if (!confirmed) return;
 
-                      async function deleteServer() {
-                        try {
-                          const response = await fetch('/api/server-instance', {
-                            method: 'DELETE',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              serverName: server.name,
-                            }),
-                          });
-                          if (response.ok) {
-                            addNotification(
-                              `Server "${server.name}" deleted successfully`,
-                              NotificationType.Success,
-                            );
-                            setServerInfo((prev) =>
-                              prev.filter((s) => s.id !== server.id),
-                            );
-                          } else {
-                            addNotification(
-                              `Failed to delete "${server.name}"`,
-                              NotificationType.Error,
-                            );
-                          }
-                        } catch (error) {
+                      try {
+                        const response = await fetch('/api/server-instance', {
+                          method: 'DELETE',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            serverName: server.name,
+                          }),
+                        });
+
+                        if (response.ok) {
+                          addNotification(
+                            `Server "${server.name}" deleted successfully`,
+                            NotificationType.Success,
+                          );
+                          setServerInfo((prev) =>
+                            prev.filter((s) => s.id !== server.id),
+                          );
+                        } else {
                           addNotification(
                             `Failed to delete "${server.name}"`,
                             NotificationType.Error,
                           );
                         }
+                      } catch (error) {
+                        addNotification(
+                          `Failed to delete "${server.name}"`,
+                          NotificationType.Error,
+                        );
                       }
-                      deleteServer();
                     }}
                   >
-                    <Trash /> Delete
+                    <Trash className='h-4 w-4' /> Delete
                   </button>
                 </div>
-                <Rcon serverName={server.name} />
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+
+                <div className='mt-3'>
+                  <Rcon serverName={server.name} />
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

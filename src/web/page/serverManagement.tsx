@@ -162,9 +162,9 @@ export default function ServerManagement() {
   }, [currentSelectedServerId]);
 
   return (
-    <div className='flex flex-col w-full p-4 grow relative  overflow-y-auto'>
+    <div className='flex w-full grow flex-col overflow-y-auto p-4'>
       <select
-        className=' bg-gray-400/80 p-2 rounded-lg'
+        className='w-full rounded-lg border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
         value={currentSelectedServerId}
         name='server-select'
         onChange={(e) => setCurrentSelectedServerId(e.target.value)}
@@ -179,15 +179,15 @@ export default function ServerManagement() {
         ))}
       </select>
       <hr className='my-4 border-gray-300' />
-      <div className='flex flex-col grow relative'>
+      <div className='flex grow flex-col'>
         {currentSelectedServerId === '' ? (
-          <div className='text-gray-500'>No server selected.</div>
+          <div className='text-gray-500 dark:text-gray-400'>No server selected.</div>
         ) : (
-          <div className='flex flex-col grow relative'>
-            <div className='text-gray-700 flex'>
+          <section className='flex grow flex-col rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+            <div className='mb-3 flex text-gray-700 dark:text-gray-200'>
               Management options for server ID: {currentSelectedServerId}
             </div>
-            <div className='grid grid-cols-2 gap-4 mt-4 relative grow'>
+            <div className='relative mt-2 grid grow grid-cols-1 gap-4 xl:grid-cols-2'>
               <div className='flex flex-col grow overflow-x-hidden relative'>
                 <ServerSetting
                   isToggleAble={false}
@@ -206,7 +206,7 @@ export default function ServerManagement() {
                   setSetting={setNewServerSetting}
                 ></ServerSetting>
                 <button
-                  className='flex flex-row items-center gap-2 mt-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-800 self-end cursor-pointer transition-colors'
+                  className='mt-4 inline-flex w-fit self-end rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50'
                   onClick={async () => {
                     const confirmed = await showConfirmDialog({
                       title: 'Restart Server',
@@ -256,7 +256,7 @@ export default function ServerManagement() {
                     submitSettings();
                   }}
                 >
-                  <Send></Send>
+                  <Send className='h-4 w-4' />
                   Submit
                 </button>
               </div>
@@ -494,7 +494,7 @@ export default function ServerManagement() {
                 showConfirmDialog={showConfirmDialog}
               />
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>

@@ -289,14 +289,14 @@ export default function Settings() {
                 Minecraft Server Manager
               </h3>
               <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
-                A management system for Minecraft servers, built with Bun and
-                React.
+                A management system for Minecraft servers and Kubernetes
+                Cluster, built with Bun and React.
               </p>
 
               <div className='space-y-2 text-sm'>
                 <div className='flex flex-row justify-between'>
                   <span>Version:</span>
-                  <span className='font-mono'>0.0.1</span>
+                  <span className='font-mono'>0.0.2</span>
                 </div>
                 <div className='flex flex-row justify-between'>
                   <span>Runtime:</span>
@@ -304,7 +304,9 @@ export default function Settings() {
                 </div>
                 <div className='flex flex-row justify-between'>
                   <span>Framework:</span>
-                  <span className='font-mono'>React + TypeScript</span>
+                  <span className='font-mono'>
+                    React + TypeScript + Tailwindcss
+                  </span>
                 </div>
               </div>
 
@@ -328,9 +330,9 @@ export default function Settings() {
   };
 
   return (
-    <div className='flex flex-row h-full w-full overflow-hidden'>
+    <div className='flex h-full w-full gap-4 overflow-hidden p-4'>
       {/* Sidebar */}
-      <div className='w-64 border-r border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4'>
+      <div className='w-64 rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
         <h1 className='text-xl font-bold mb-4 flex flex-row items-center gap-2'>
           <SettingsIcon className='w-5 h-5' />
           Settings
@@ -354,7 +356,9 @@ export default function Settings() {
       </div>
 
       {/* Content */}
-      <div className='flex-1 p-6 overflow-y-auto'>{renderTabContent()}</div>
+      <div className='flex-1 overflow-y-auto rounded-xl border border-gray-300 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+        {renderTabContent()}
+      </div>
     </div>
   );
 }

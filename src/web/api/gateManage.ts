@@ -6,6 +6,19 @@ import {
   patchDeployment,
 } from '@/utils/k8s';
 import type { GateConfig } from '@/utils/type';
+import {
+  filterGateConfig,
+  isReadOnlyField,
+  isGateConfigEqual,
+} from '@/utils/gateConfig';
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDeepEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 // Get Gate deployment status
 async function GET(request: Request): Promise<Response> {
@@ -71,6 +84,13 @@ async function POST(request: Request): Promise<Response> {
           );
         }
 
+        if (!isPlainObject(config)) {
+          return Response.json(
+            { status: 'error', message: 'Invalid config payload' },
+            { status: 400 },
+          );
+        }
+
         // Get current config
         const currentConfig = (await getConfigMapData(
           Namespace,
@@ -79,12 +99,56 @@ async function POST(request: Request): Promise<Response> {
           'yaml',
         )) as GateConfig;
 
-        // Merge with new config
+        // Validate config structure against YAML schema
+        let validatedConfig: GateConfig;
+        try {
+          validatedConfig = filterGateConfig(config as any);
+        } catch (validationError) {
+          return Response.json(
+            {
+              status: 'error',
+              message: `Configuration validation failed: ${(validationError as Error).message}`,
+            },
+            { status: 400 },
+          );
+        }
+
+        // Server-side protection against malicious API requests.
+        // Check all read-only fields for any modifications
+        const readOnlyPaths = ['api', 'config.bind', 'config.forwarding'];
+        for (const readonlyPath of readOnlyPaths) {
+          if (isReadOnlyField(readonlyPath)) {
+            // Extract value by path
+            const pathParts = readonlyPath.split('.');
+            let currentValue: any = currentConfig;
+            let newValue: any = validatedConfig;
+            
+            for (const part of pathParts) {
+              currentValue = currentValue?.[part];
+              newValue = newValue?.[part];
+            }
+
+            // Compare the values
+            if (!isGateConfigEqual(currentValue, newValue)) {
+              return Response.json(
+                {
+                  status: 'error',
+                  message: `Field "${readonlyPath}" is read-only and cannot be modified`,
+                },
+                { status: 403 },
+              );
+            }
+          }
+        }
+
+        // Merge with new config while enforcing immutable fields.
         const updatedConfig = {
-          ...currentConfig,
+          ...validatedConfig,
+          api: currentConfig.api,
           config: {
-            ...currentConfig.config,
-            ...config.config,
+            ...validatedConfig.config,
+            bind: currentConfig.config.bind,
+            forwarding: currentConfig.config.forwarding,
           },
         };
 
@@ -96,19 +160,9 @@ async function POST(request: Request): Promise<Response> {
           'config.yml',
         );
 
-        // Trigger restart to apply config
-        // await patchDeployment(Namespace, 'gate-server-deployment', [
-        //   {
-        //     op: 'add',
-        //     path: '/spec/template/metadata/annotations/configUpdatedAt',
-        //     value: new Date().toISOString(),
-        //   },
-        // ]);
-        // Gate will automatically reload config without restart, so we can skip the restart step
-
         return Response.json({
           status: 'ok',
-          message: 'Gate configuration updated and restart initiated',
+          message: 'Gate configuration updated successfully',
         });
       }
 

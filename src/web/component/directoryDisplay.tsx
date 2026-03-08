@@ -155,7 +155,7 @@ export default function DirectoryDisplay({
               <h2 className='text-lg font-semibold'>File Viewer</h2>
               <div className='flex flex-row gap-2'>
                 <button
-                  className='text-red-500 hover:text-red-700'
+                  className='px-3 py-1 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 transition-colors'
                   onClick={() => {
                     setIsOpenFile(false);
                     setFileContent(fileData.current);
@@ -164,7 +164,7 @@ export default function DirectoryDisplay({
                   Close
                 </button>
                 <button
-                  className='text-green-500 hover:text-green-700'
+                  className='px-3 py-1 rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors'
                   onClick={() => {
                     handleChangeFileContent(fileData.current);
                     setIsOpenFile(false);
