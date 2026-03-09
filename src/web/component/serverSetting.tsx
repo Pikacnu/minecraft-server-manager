@@ -4,7 +4,7 @@ import {
   type MinecraftServerDeploymentsGeneratorArguments,
   type Variables,
 } from '@/utils/type';
-import { ChevronDown, ChevronUp, CircleX } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   useState,
   useEffect,
@@ -34,9 +34,6 @@ export default function ServerSetting({
       Variables & { serverSettingId: string }
   >;
 }) {
-  const [selectedFields, setSelectedFields] = useState<string[]>(
-    defaultSelectedFields,
-  );
   const [fieldValues, setFieldValues] = useState<Record<string, string>>(
     Object.fromEntries(
       FIELD_DEFINITIONS.map((field) => [
@@ -48,25 +45,30 @@ export default function ServerSetting({
       ]),
     ),
   );
-  const handleAddField = (fieldKey: string) => {
-    if (!selectedFields.includes(fieldKey)) {
-      setSelectedFields([...selectedFields, fieldKey]);
-    }
-  };
   const [isOpen, setIsOpen] = useState<boolean>(open);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(['Deployment']),
+  );
 
   const previousServerSettingId = useRef('');
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     if (
       defaultValue &&
       defaultValue.serverSettingId !== previousServerSettingId.current
     ) {
-      setSelectedFields(
-        Object.entries(defaultValue)
-          .map(([key, value]) => (value ? key : ''))
-          .filter((key) => !['serverSettingId'].includes(key) && key !== ''),
-      );
       setFieldValues(defaultValue as Record<string, string>);
       previousServerSettingId.current = defaultValue.serverSettingId!;
     }
@@ -80,171 +82,122 @@ export default function ServerSetting({
   }, [fieldValues, setSetting]);
 
   const MainComponent = (
-    <div className='flex flex-col w-full border border-gray-300 rounded-lg p-4 bg-gray-500/40 grow h-full overflow-y-auto'>
-      <div className='flex flex-row w-full'>
-        <input
-          className='grow border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'
-          name='addCategory'
-          id='addCategory'
-          list='fieldOptions'
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleAddField((e.target as HTMLInputElement).value);
-              (e.target as HTMLInputElement).value = '';
-            }
-          }}
-        ></input>
-        <datalist id='fieldOptions'>
-          {FIELDS_BY_CATEGORY.map(([category, fields]) => (
-            <optgroup
-              key={category}
-              label={category}
-            >
-              {fields.map((field) => {
-                if (selectedFields.includes(field.key)) return null;
+    <div className='flex h-full w-full grow flex-col overflow-y-auto rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60 md:p-4'>
+      {FIELDS_BY_CATEGORY.map(([category, fields]) => (
+        <div
+          key={category}
+          className='mb-4 overflow-hidden rounded-lg border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-800'
+        >
+          <button
+            className='flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700'
+            onClick={() => toggleCategory(category)}
+          >
+            <span className='text-base font-semibold md:text-lg'>{category}</span>
+            {expandedCategories.has(category) ? (
+              <ChevronUp className='w-5 h-5' />
+            ) : (
+              <ChevronDown className='w-5 h-5' />
+            )}
+          </button>
+          {expandedCategories.has(category) && (
+            <div className='grid grid-cols-1 gap-4 border-t border-gray-300 p-4 dark:border-gray-700 md:grid-cols-2 xl:grid-cols-3'>
+              {fields.map((fieldDef) => {
+                const fieldKey = fieldDef.key;
                 return (
-                  <option
-                    key={field.key}
-                    value={field.key}
+                  <div
+                    key={fieldKey}
+                    className='flex flex-col gap-1'
                   >
-                    {field.example} ({field.type})
-                  </option>
+                    <label
+                      htmlFor={fieldKey}
+                      className='text-sm font-medium'
+                    >
+                      {fieldDef.key}
+                    </label>
+                    {((def) => {
+                      switch (def.type) {
+                        case 'string':
+                        case 'number':
+                          return (
+                            <input
+                              type={def.type === 'number' ? 'number' : 'text'}
+                              id={def.key}
+                              disabled={def.readonly && isToggleAble}
+                              placeholder={def.example}
+                              className='rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500'
+                              value={fieldValues[def.key] || ''}
+                              onChange={(e) =>
+                                setFieldValues({
+                                  ...fieldValues,
+                                  [def.key]: e.target.value,
+                                })
+                              }
+                            ></input>
+                          );
+                        case 'boolean':
+                          return (
+                            <select
+                              id={def.key}
+                              className='rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-800'
+                              value={fieldValues[def.key] || 'true'}
+                              disabled={def.readonly && isToggleAble}
+                              onChange={(e) =>
+                                setFieldValues({
+                                  ...fieldValues,
+                                  [def.key]: e.target.value,
+                                })
+                              }
+                            >
+                              <option value='true'>True</option>
+                              <option value='false'>False</option>
+                            </select>
+                          );
+                        case 'enum':
+                          return (
+                            <select
+                              id={def.key}
+                              className='rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-800'
+                              value={fieldValues[def.key] || def.example}
+                              disabled={def.readonly && isToggleAble}
+                              onChange={(e) =>
+                                setFieldValues({
+                                  ...fieldValues,
+                                  [def.key]: e.target.value,
+                                })
+                              }
+                            >
+                              {def.options?.map((option) => (
+                                <option
+                                  key={option}
+                                  value={option}
+                                >
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        default:
+                          return null;
+                      }
+                    })(fieldDef)}
+                  </div>
                 );
               })}
-            </optgroup>
-          ))}
-        </datalist>
-        <button
-          className='ml-2 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600'
-          onClick={() => {
-            const input = document.getElementById(
-              'addCategory',
-            ) as HTMLInputElement;
-            handleAddField(input.value);
-            input.value = '';
-          }}
-        >
-          Add Field
-        </button>
-      </div>
-      {selectedFields.length === 0 ? (
-        <div className='mt-4 text-gray-500'>No fields selected.</div>
-      ) : (
-        <div className='mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 grow overflow-y-auto'>
-          {selectedFields.map((fieldKey) => {
-            const fieldDef = FIELD_DEFINITIONS.find(
-              (field) => field.key === fieldKey,
-            );
-            if (!fieldDef) return null;
-            return (
-              <div
-                key={fieldKey}
-                className='flex flex-col'
-              >
-                <label
-                  htmlFor={fieldKey}
-                  className='font-semibold mb-1'
-                >
-                  {fieldDef.key} <sub>({fieldDef.type})</sub>
-                </label>
-                {((def) => {
-                  switch (def.type) {
-                    case 'string':
-                    case 'number':
-                      return (
-                        <input
-                          type={def.type === 'number' ? 'number' : 'text'}
-                          id={def.key}
-                          disabled={def.readonly && isToggleAble}
-                          placeholder={def.example}
-                          className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800 placeholder:text-gray-200/40'
-                          value={fieldValues[def.key]}
-                          onChange={(e) =>
-                            setFieldValues({
-                              ...fieldValues,
-                              [def.key]: e.target.value,
-                            })
-                          }
-                        ></input>
-                      );
-                    case 'boolean':
-                      return (
-                        <select
-                          id={def.key}
-                          className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'
-                          value={fieldValues[def.key]}
-                          disabled={def.readonly && isToggleAble}
-                          onChange={(e) =>
-                            setFieldValues({
-                              ...fieldValues,
-                              [def.key]: e.target.value,
-                            })
-                          }
-                        >
-                          <option value='true'>True</option>
-                          <option value='false'>False</option>
-                        </select>
-                      );
-                    case 'enum':
-                      return (
-                        <select
-                          id={def.key}
-                          className='border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800'
-                          value={fieldValues[def.key]}
-                          disabled={def.readonly && isToggleAble}
-                          onChange={(e) =>
-                            setFieldValues({
-                              ...fieldValues,
-                              [def.key]: e.target.value,
-                            })
-                          }
-                        >
-                          {def.options?.map((option) => (
-                            <option
-                              key={option}
-                              value={option}
-                            >
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      );
-                    default:
-                      return null;
-                  }
-                })(fieldDef)}
-                {defaultSelectedFields.includes(fieldKey) ||
-                (fieldDef.readonly && isToggleAble) ? null : (
-                  <button
-                    className='mt-2 p-1 bg-red-500 hover:bg-red-600 text-white flex flex-row items-center gap-2 rounded-md justify-center'
-                    onClick={() => {
-                      setSelectedFields(
-                        selectedFields.filter((key) => key !== fieldKey),
-                      );
-                      const updatedValues = { ...fieldValues };
-                      delete updatedValues[fieldKey];
-                      setFieldValues(updatedValues);
-                    }}
-                  >
-                    <CircleX /> Remove
-                  </button>
-                )}
-              </div>
-            );
-          })}
+            </div>
+          )}
         </div>
-      )}
+      ))}
     </div>
   );
 
   return (
-    <div className='grow flex flex-col bg-blue-400/40 w-full p-2 rounded-xl'>
+    <div className='flex w-full grow flex-col rounded-xl border border-gray-300 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
       {!isToggleAble ? (
         MainComponent
       ) : !isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className=' self-start p-4 w-full flex gap-2'
+          className='flex w-full items-center gap-2 rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700'
         >
           <ChevronDown /> Server Settings
         </button>
@@ -252,7 +205,7 @@ export default function ServerSetting({
         <>
           <button
             onClick={() => setIsOpen(false)}
-            className='p-4 w-full flex gap-2'
+            className='flex w-full items-center gap-2 rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700'
           >
             <ChevronUp /> Server Settings
           </button>

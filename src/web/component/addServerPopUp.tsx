@@ -42,21 +42,23 @@ export default function AddServerPopUp() {
   };
   return (
     <div
-      className='absolute w-full h-full top-0 left-0 bg-black/70 flex justify-center items-start z-10'
+      className='fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 md:p-8'
       onClick={() => {
         if (!isOpen) return;
         setIsOpen(false);
       }}
     >
       <div
-        className='w-2/3 flex flex-col gap-4 bg-white/80 p-4 rounded-3xl mt-16'
+        className='mt-8 flex w-full max-w-6xl flex-col gap-4 rounded-xl border border-gray-300 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
         }}
       >
-        <div className='border border-gray-300 rounded-lg p-4 bg-gray-900 text-white flex flex-col items-start'>
-          <ul className=' grid grid-cols-2 w-full'>
+        <h2 className='text-xl font-bold'>Add Server</h2>
+
+        <div className='rounded-lg border border-gray-300 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800'>
+          <ul className='grid w-full grid-cols-1 gap-2 text-sm md:grid-cols-2'>
             {[
               ['ServerName', serverSettingSaver.SERVER_NAME],
               ['Version', serverSettingSaver.version],
@@ -65,29 +67,39 @@ export default function AddServerPopUp() {
             ].map(([name, value], index) => (
               <li
                 key={index}
-                className='mb-2 gap-2 flex flex-row items-center'
+                className='flex flex-row items-center gap-2'
               >
-                <span className=' border border-amber-300 p-1 rounded-lg  '>
+                <span className='rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium dark:border-gray-600'>
                   {name}
                 </span>
-                :<span>{value}</span>
+                <span className='font-mono text-sm text-gray-700 dark:text-gray-300'>
+                  {String(value ?? '-')}
+                </span>
               </li>
             ))}
           </ul>
         </div>
-        <div className=' bg-black rounded-xl flex'>
+
+        <div className='max-h-[60vh] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-700 dark:bg-gray-800'>
           <ServerSetting
             isToggleAble={false}
             open={true}
             setSetting={setServerSettingSaver}
           />
         </div>
-        <div>
+
+        <div className='flex justify-end gap-2 border-t border-gray-300 pt-4 dark:border-gray-700'>
           <button
-            className='mt-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600'
+            className='rounded-lg border border-gray-300 px-4 py-2 text-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700'
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            className='rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700'
             onClick={() => handleAddServer()}
           >
-            Add
+            Add Server
           </button>
         </div>
       </div>

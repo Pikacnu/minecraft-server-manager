@@ -9,6 +9,7 @@ import {
 import { useSettings } from '../contexts/settings';
 import GateManagement from '../component/gateManagement';
 import { ThemeMode, NotificationPosition } from '../utils/enums';
+import { DeviceType, useDevice } from '../hooks/useDevice';
 
 enum SettingsTab {
   UI = 'ui',
@@ -21,6 +22,7 @@ enum SettingsTab {
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>(SettingsTab.UI);
   const { systemSettings, uiPreferences, updateUIPreference } = useSettings();
+  const device = useDevice();
 
   const tabs: Array<{ id: SettingsTab; label: string; icon: any }> = [
     { id: SettingsTab.UI, label: 'UI Preferences', icon: Palette },
@@ -330,33 +332,35 @@ export default function Settings() {
   };
 
   return (
-    <div className='flex h-full w-full gap-4 overflow-hidden p-4'>
+    <div className='flex h-full w-full flex-col gap-4 overflow-hidden p-4 md:flex-row'>
       {/* Sidebar */}
-      <div className='w-64 rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+      <div className='w-full rounded-xl border border-gray-300 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:w-64 md:p-4'>
         <h1 className='text-xl font-bold mb-4 flex flex-row items-center gap-2'>
           <SettingsIcon className='w-5 h-5' />
-          Settings
+          {device !== DeviceType.Mobile && <span>'Settings'</span>}
         </h1>
-        <nav className='space-y-1'>
+        <nav className='flex gap-1 overflow-x-auto md:block md:space-y-1 md:overflow-visible'>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full text-left p-2 rounded-lg flex flex-row items-center gap-2 transition-colors ${
+              className={`shrink-0 rounded-lg p-2 text-left transition-colors md:flex md:w-full md:flex-row md:items-center md:gap-2 ${
                 activeTab === tab.id
                   ? 'bg-blue-500 text-white'
                   : 'hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               <tab.icon className='w-4 h-4' />
-              {tab.label}
+              {device !== DeviceType.Mobile && (
+                <span className='ml-2 md:ml-0'>{tab.label}</span>
+              )}
             </button>
           ))}
         </nav>
       </div>
 
       {/* Content */}
-      <div className='flex-1 overflow-y-auto rounded-xl border border-gray-300 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+      <div className='flex-1 overflow-y-auto rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:p-6'>
         {renderTabContent()}
       </div>
     </div>

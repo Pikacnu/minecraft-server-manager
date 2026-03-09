@@ -18,19 +18,19 @@ export default function Server() {
   const { showConfirmDialog } = useConfirmDialog();
 
   return (
-    <div className='flex w-full flex-col gap-4 p-4'>
+    <div className='flex h-full w-full flex-col gap-4 overflow-hidden p-4'>
       {isOpenAddServerPopUp && <AddServerPopUp />}
 
       <div className='flex items-center justify-end'>
         <button
-          className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700'
+          className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 sm:w-auto'
           onClick={() => setIsOpenAddServerPopUp(true)}
         >
           <CirclePlus className='h-4 w-4' /> Add Server
         </button>
       </div>
 
-      <section className='rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+      <section className='flex-1 overflow-y-auto rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
         <h1 className='mb-6 border-b border-gray-300 pb-3 text-2xl font-bold dark:border-gray-700'>
           Server Management
         </h1>
@@ -44,7 +44,7 @@ export default function Server() {
             {serverInfo.map((server) => (
               <article
                 key={server.id}
-                className='rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50'
+                className='rounded-lg border border-gray-300 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800'
               >
                 <div className='flex flex-wrap items-center justify-between gap-3 border-b border-gray-300 pb-2 dark:border-gray-700'>
                   <div>
@@ -68,7 +68,7 @@ export default function Server() {
                   </div>
                 </div>
 
-                <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4'>
+                <div className='mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4'>
                   <button
                     className='inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700'
                     onClick={() => {

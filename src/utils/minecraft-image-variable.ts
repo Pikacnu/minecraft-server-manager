@@ -112,14 +112,6 @@ export type AutoPauseVariables = Partial<{
   DEBUG_AUTOPAUSE: boolean | string;
 }>;
 
-export type AutoStopVariables = Partial<{
-  ENABLE_AUTOSTOP: boolean | string;
-  AUTOSTOP_TIMEOUT_EST: number | string;
-  AUTOSTOP_TIMEOUT_INIT: number | string;
-  AUTOSTOP_PERIOD: number | string;
-  DEBUG_AUTOSTOP: boolean | string;
-}>;
-
 export type CurseForgeVariables = Partial<{
   CF_API_KEY: string;
   CF_API_KEY_FILE: string;

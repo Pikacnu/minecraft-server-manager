@@ -24,8 +24,6 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
   memoryLimit = 2048,
   version,
   domain,
-  map_url,
-  map_source_folder,
   Variables,
 }) => {
   if (cpuLimit < 1000) {
@@ -127,67 +125,19 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                       '/bin/sh',
                       '-c',
                       `
-        # 1. Config Setup
+        # Config Setup: Copy server-type specific configs to /data directory
         if [ -d "/tmp/config" ] && [ "$(ls -A /tmp/config)" ]; then
-          echo "Copying config files..."
+          echo "Copying server configuration files..."
           mkdir -p /data/config
           cp /tmp/config/* /data/config/
           chmod -R 777 /data/config
-        fi
-
-        # 2. Mods Installation from ConfigMap
-        if [ -f "/etc/mods-config/mods.json" ]; then
-          echo "Installing mods from ConfigMap..."
-          mkdir -p /data/mods
-          apk add --no-cache jq curl
-          cat /etc/mods-config/mods.json | jq -r '.[] | 
-            if .source == "modrinth" then
-              "modrinth:" + .name + ":" + .version
-            elif .source == "spiget" then
-              "spiget:" + .id
-            else
-              empty
-            end' > /data/mods/install-list.txt
-          echo "Mods installation list prepared:"
-          cat /data/mods/install-list.txt
-        fi
-
-        # 3. Map Download (if MAP_URL is set)
-        if [ -n "$MAP_URL" ]; then
-          if [ -d "/data/world" ]; then
-            echo 'World directory already exists. Skipping download.'
-          else
-            echo 'Installing dependencies for map download...'
-            apk add --no-cache curl unzip
-            cd /data
-            echo 'Downloading map...'
-            curl -L -o map.zip "$MAP_URL"
-            echo 'Unzipping...'
-            unzip -q map.zip -d /data/temp
-            if [ -d "/data/temp/$MAP_SOURCE_FOLDER" ]; then
-               mv "/data/temp/$MAP_SOURCE_FOLDER" /data/world
-            else
-               if [ -f "/data/temp/level.dat" ]; then
-                  mv /data/temp /data/world
-               else
-                  echo 'ERROR: Could not find folder $MAP_SOURCE_FOLDER inside the zip.'
-                  ls -la /data/temp
-                  exit 1
-               fi
-            fi
-            rm -rf /data/temp map.zip
-            echo 'Map setup complete.'
-          fi
+          echo "Configuration setup complete."
+        else
+          echo "No additional configuration files provided."
         fi
         `,
                     ],
-                    env: [
-                      { name: 'MAP_URL', value: map_url ?? '' },
-                      {
-                        name: 'MAP_SOURCE_FOLDER',
-                        value: map_source_folder ?? '',
-                      },
-                    ],
+                    env: [],
                     volumeMounts: [
                       {
                         name: 'minecraft-data',
@@ -197,14 +147,10 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
                         name: 'minecraft-server-config-volume',
                         mountPath: '/tmp/config',
                       },
-                      {
-                        name: 'minecraft-server-mods-config',
-                        mountPath: '/etc/mods-config',
-                        readOnly: true,
-                      },
                     ],
                   },
                 ],
+                terminationGracePeriodSeconds: 120,
                 containers: [
                   {
                     name: 'minecraft-server',
@@ -445,6 +391,11 @@ secret = "${VelocitySecret}"
                             'EULA',
                             'ONLINE_MODE',
                             'modrinthProjects',
+                            'ENABLE_AUTOSTOP',
+                            'AUTOSTOP_TIMEOUT_EST',
+                            'AUTOSTOP_TIMEOUT_INIT',
+                            'AUTOSTOP_PERIOD',
+                            'DEBUG_AUTOSTOP',
                           ].includes(key),
                       )
                       .map(([key, value]) => ({

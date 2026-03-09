@@ -13,6 +13,14 @@ import {
   type Variables,
 } from '@/utils/type';
 
+const AutoStopKeys = [
+  'ENABLE_AUTOSTOP',
+  'AUTOSTOP_TIMEOUT_EST',
+  'AUTOSTOP_TIMEOUT_INIT',
+  'AUTOSTOP_PERIOD',
+  'DEBUG_AUTOSTOP',
+] as const;
+
 export async function POST(request: Request): Promise<Response> {
   const variable = (await request.json()) as Omit<
     MinecraftServerDeploymentsGeneratorArguments,
@@ -38,7 +46,11 @@ export async function POST(request: Request): Promise<Response> {
       name: variable.SERVER_NAME!.replaceAll(' ', '-').toLowerCase(),
       Variables: Object.fromEntries(
         Object.entries(variable).filter(
-          ([, value]) => value !== undefined && value !== null && value !== '',
+          ([key, value]) =>
+            value !== undefined &&
+            value !== null &&
+            value !== '' &&
+            !AutoStopKeys.includes(key as (typeof AutoStopKeys)[number]),
         ),
       ),
     });
@@ -82,8 +94,6 @@ const ShouldntBeChanged = [
   'ONLINE_MODE',
   'ENABLE_RCON',
   'RCON_PASSWORD',
-  'ENABLE_AUTOSTOP',
-  'AUTOSTOP_TIMEOUT_EST',
   'EULA',
 ];
 
@@ -111,7 +121,8 @@ export async function PATCH(request: Request): Promise<Response> {
           value !== undefined &&
           value !== null &&
           value !== '' &&
-          !ShouldntBeChanged.includes(key),
+          !ShouldntBeChanged.includes(key) &&
+          !AutoStopKeys.includes(key as (typeof AutoStopKeys)[number]),
       ),
     ) as Partial<Variables & MinecraftServerDeploymentsGeneratorArguments>;
 
@@ -151,6 +162,11 @@ export async function PATCH(request: Request): Promise<Response> {
           : ''
       }`,
     };
+
+    // Remove legacy auto-stop settings from existing ConfigMap data.
+    for (const key of AutoStopKeys) {
+      delete (updatedVariables as Record<string, unknown>)[key];
+    }
 
     await patchENVConfigMap(
       Namespace,

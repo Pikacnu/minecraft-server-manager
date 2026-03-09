@@ -162,7 +162,7 @@ export default function ServerManagement() {
   }, [currentSelectedServerId]);
 
   return (
-    <div className='flex w-full grow flex-col overflow-y-auto p-4'>
+    <div className='flex h-full w-full flex-col overflow-hidden p-4'>
       <select
         className='w-full rounded-lg border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
         value={currentSelectedServerId}
@@ -179,322 +179,330 @@ export default function ServerManagement() {
         ))}
       </select>
       <hr className='my-4 border-gray-300' />
-      <div className='flex grow flex-col'>
+      <div className='flex grow flex-col overflow-hidden'>
         {currentSelectedServerId === '' ? (
           <div className='text-gray-500 dark:text-gray-400'>
             No server selected.
           </div>
         ) : (
-          <section className='flex grow flex-col rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+          <section className='flex grow flex-col overflow-hidden rounded-xl border border-gray-300 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:p-4'>
             <div className='mb-3 flex text-gray-700 dark:text-gray-200'>
               Management options for server ID: {currentSelectedServerId}
             </div>
-            <div className='relative mt-2 grid grow grid-cols-1 gap-4 xl:grid-cols-2'>
-              <div className='flex flex-col grow overflow-x-hidden relative'>
-                <ServerSetting
-                  isToggleAble={false}
-                  open={true}
-                  defaultValue={
-                    Object.keys(currentServerSetting).length > 0
-                      ? {
-                          ...currentServerSetting,
-                          serverSettingId:
-                            currentServerSetting.serverSettingId || '',
-                        }
-                      : {
-                          serverSettingId: '',
-                        }
-                  }
-                  setSetting={setNewServerSetting}
-                ></ServerSetting>
-                <button
-                  className='mt-4 inline-flex w-fit self-end rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50'
-                  onClick={async () => {
-                    const confirmed = await showConfirmDialog({
-                      title: 'Restart Server',
-                      message:
-                        'Submitting these changes will restart the server. Are you sure you want to continue?',
-                      checkboxLabel:
-                        'I understand that the server will restart',
-                      requireCheckbox: true,
-                      confirmText: 'Submit Changes',
-                      cancelText: 'Cancel',
-                    });
-
-                    if (!confirmed) {
-                      return;
+            <div className='relative mt-2 grid grow grid-cols-1 gap-4 overflow-hidden lg:grid-cols-2'>
+              <div className='relative flex min-h-0 min-w-0 grow flex-col overflow-hidden'>
+                <div className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
+                  <ServerSetting
+                    isToggleAble={false}
+                    open={true}
+                    defaultValue={
+                      Object.keys(currentServerSetting).length > 0
+                        ? {
+                            ...currentServerSetting,
+                            serverSettingId:
+                              currentServerSetting.serverSettingId || '',
+                          }
+                        : {
+                            serverSettingId: '',
+                          }
                     }
+                    setSetting={setNewServerSetting}
+                  />
+                </div>
+                <div className='mt-3 shrink-0 border-t border-gray-300 bg-white pt-3 dark:border-gray-700 dark:bg-gray-800'>
+                  <button
+                    className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit sm:self-end'
+                    onClick={async () => {
+                      const confirmed = await showConfirmDialog({
+                        title: 'Restart Server',
+                        message:
+                          'Submitting these changes will restart the server. Are you sure you want to continue?',
+                        checkboxLabel:
+                          'I understand that the server will restart',
+                        requireCheckbox: true,
+                        confirmText: 'Submit Changes',
+                        cancelText: 'Cancel',
+                      });
 
-                    async function submitSettings() {
-                      try {
-                        const response = await fetch('/api/server-instance', {
-                          method: 'PATCH',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            serverName: currentSelectedServerId,
-                            variables: newServerSetting,
-                          }),
-                        });
-                        if (response.ok) {
-                          addNotification(
-                            'Server settings updated successfully',
-                            NotificationType.Success,
-                          );
-                        } else {
+                      if (!confirmed) {
+                        return;
+                      }
+
+                      async function submitSettings() {
+                        try {
+                          const response = await fetch('/api/server-instance', {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              serverName: currentSelectedServerId,
+                              variables: newServerSetting,
+                            }),
+                          });
+                          if (response.ok) {
+                            addNotification(
+                              'Server settings updated successfully',
+                              NotificationType.Success,
+                            );
+                          } else {
+                            addNotification(
+                              'Failed to update server settings',
+                              NotificationType.Error,
+                            );
+                          }
+                        } catch (error) {
                           addNotification(
                             'Failed to update server settings',
                             NotificationType.Error,
                           );
                         }
-                      } catch (error) {
-                        addNotification(
-                          'Failed to update server settings',
-                          NotificationType.Error,
-                        );
                       }
-                    }
-                    submitSettings();
-                  }}
-                >
-                  <Send className='h-4 w-4' />
-                  Submit
-                </button>
+                      submitSettings();
+                    }}
+                  >
+                    <Send className='h-4 w-4' />
+                    Submit
+                  </button>
+                </div>
               </div>
-
-              <DirectoryDisplay
-                fileStructure={optimisticFileStructure}
-                currentPath={[]}
-                selectedFiles={selectedFiles}
-                onFileSelect={(fileName) => {
-                  setSelectedFiles((prev) =>
-                    prev.includes(fileName)
-                      ? prev.filter((f) => f !== fileName)
-                      : [...prev, fileName],
-                  );
-                }}
-                onCompress={async (path, files) => {
-                  if (currentSelectedServerId === '') return;
-                  const outputPath = path
-                    ? `${path}/compressed.zip`
-                    : 'compressed.zip';
-                  await fetch('/api/file-system', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      action: 'compress',
-                      name: currentSelectedServerId,
-                      files: files.map((f) => (path ? `${path}/${f}` : f)),
-                      outputPath,
-                    }),
-                  });
-                  setSelectedFiles([]);
-                  fetchFileStructure();
-                }}
-                onUncompress={async (path, zipFile) => {
-                  if (currentSelectedServerId === '') return;
-                  const outputDir = path
-                    ? `${path}/${zipFile}-uncompressed`
-                    : `${zipFile}-uncompressed`;
-                  await fetch('/api/file-system', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      action: 'uncompress',
-                      name: currentSelectedServerId,
-                      zipPath: path ? `${path}/${zipFile}` : zipFile,
-                      outputDir,
-                    }),
-                  });
-                  setSelectedFiles([]);
-                  fetchFileStructure();
-                }}
-                onNavigate={(path) => {}}
-                handleFileChange={(path, content) => {
-                  if (path === '' || currentSelectedServerId === '') return;
-                  const submitFileChange = async () => {
-                    await fetch(
-                      `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                        path,
-                      )}`,
-                      { method: 'PUT', body: content },
+              <div className='min-h-0 min-w-0 overflow-auto rounded-lg border border-gray-300 p-2 dark:border-gray-700'>
+                <DirectoryDisplay
+                  fileStructure={optimisticFileStructure}
+                  currentPath={[]}
+                  selectedFiles={selectedFiles}
+                  onFileSelect={(fileName) => {
+                    setSelectedFiles((prev) =>
+                      prev.includes(fileName)
+                        ? prev.filter((f) => f !== fileName)
+                        : [...prev, fileName],
                     );
-                    fetchFileStructure();
-                  };
-                  submitFileChange();
-                }}
-                handleFileRead={async (path) => {
-                  if (path === '' || currentSelectedServerId === '') return '';
-                  const fileResponse = await fetch(
-                    `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                      path,
-                    )}`,
-                  );
-                  if (fileResponse.ok) {
-                    const data = await fileResponse.json();
-                    if (data.success) {
-                      return data.data as string;
-                    }
-                  } else {
-                    return `Error: ${fileResponse.status} ${fileResponse.statusText}`;
-                  }
-                  return '';
-                }}
-                handleCreate={async (path, type) => {
-                  if (currentSelectedServerId === '') return;
-                  startTransition(async () => {
-                    addOptimisticFileStructure({
-                      type: 'create',
-                      payload: { path, type },
-                    });
-                    await fetch(`/api/file-system`, {
+                  }}
+                  onCompress={async (path, files) => {
+                    if (currentSelectedServerId === '') return;
+                    const outputPath = path
+                      ? `${path}/compressed.zip`
+                      : 'compressed.zip';
+                    await fetch('/api/file-system', {
                       method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
+                        action: 'compress',
                         name: currentSelectedServerId,
-                        type,
-                        path: path,
-                        ...(type === DirectoryType.File ? { content: '' } : {}),
-                      }),
-                    });
-                    fetchFileStructure();
-                  });
-                }}
-                handleDelete={async (path, type, recursive) => {
-                  if (currentSelectedServerId === '') return false;
-                  if (path === '') {
-                    console.error('Cannot delete root directory');
-                    return false;
-                  }
-                  if (recursive) {
-                    if (type === DirectoryType.File) {
-                      throw new Error(
-                        'Invalid state: recursive delete on file',
-                      );
-                    }
-                    const confirmed = await showConfirmDialog({
-                      title: 'Delete Folder Recursively',
-                      message: `Are you sure you want to recursively delete the folder at ${path} and all its contents?\n\nThis action cannot be undone.`,
-                      checkboxLabel:
-                        'I understand this will delete all contents permanently',
-                      requireCheckbox: true,
-                      confirmText: 'Delete',
-                      cancelText: 'Cancel',
-                    });
-                    if (!confirmed) return false;
-                  }
-                  if (type === DirectoryType.Directory && !recursive) {
-                    const confirmed = await showConfirmDialog({
-                      title: 'Delete Empty Folder',
-                      message: `Are you sure you want to delete the folder at ${path} without deleting its contents?\n\nThis may fail if the folder is not empty.`,
-                      confirmText: 'Delete',
-                      cancelText: 'Cancel',
-                    });
-                    if (!confirmed) return false;
-                  }
-
-                  startTransition(async () => {
-                    addOptimisticFileStructure({
-                      type: 'delete',
-                      payload: { path },
-                    });
-                    try {
-                      const response = await fetch(
-                        `/api/file-system?name=${currentSelectedServerId}`,
-                        {
-                          method: 'DELETE',
-                          body: JSON.stringify({
-                            name: currentSelectedServerId,
-                            path,
-                            type,
-                            recursive,
-                          }),
-                        },
-                      );
-                      if (response.ok) {
-                        setSelectedFiles([]);
-                        fetchFileStructure();
-                      } else {
-                        const data = await response.json();
-                        console.error(
-                          'Delete request failed with status:',
-                          response.status,
-                        );
-                        addNotification(
-                          data.message ||
-                            'Unknown error occurred during deletion.',
-                          NotificationType.Error,
-                        );
-                        fetchFileStructure();
-                      }
-                    } catch (e) {
-                      console.error('Error during delete request:', e);
-                      fetchFileStructure();
-                    }
-                  });
-                  return true;
-                }}
-                handleRename={async (oldPath, newPath) => {
-                  if (currentSelectedServerId === '') return;
-                  startTransition(async () => {
-                    addOptimisticFileStructure({
-                      type: 'rename',
-                      payload: { oldPath, newPath },
-                    });
-                    await fetch(`/api/file-system`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({
-                        name: currentSelectedServerId,
-                        oldPath,
-                        newPath,
+                        files: files.map((f) => (path ? `${path}/${f}` : f)),
+                        outputPath,
                       }),
                     });
                     setSelectedFiles([]);
                     fetchFileStructure();
-                  });
-                }}
-                handleUpload={async (path, file) => {
-                  if (currentSelectedServerId === '') return;
-                  startTransition(async () => {
-                    addOptimisticFileStructure({
-                      type: 'create',
-                      payload: { path, type: DirectoryType.File },
+                  }}
+                  onUncompress={async (path, zipFile) => {
+                    if (currentSelectedServerId === '') return;
+                    const outputDir = path
+                      ? `${path}/${zipFile}-uncompressed`
+                      : `${zipFile}-uncompressed`;
+                    await fetch('/api/file-system', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'uncompress',
+                        name: currentSelectedServerId,
+                        zipPath: path ? `${path}/${zipFile}` : zipFile,
+                        outputDir,
+                      }),
                     });
-                    await fetch(
+                    setSelectedFiles([]);
+                    fetchFileStructure();
+                  }}
+                  onNavigate={(path) => {}}
+                  handleFileChange={(path, content) => {
+                    if (path === '' || currentSelectedServerId === '') return;
+                    const submitFileChange = async () => {
+                      await fetch(
+                        `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
+                          path,
+                        )}`,
+                        { method: 'PUT', body: content },
+                      );
+                      fetchFileStructure();
+                    };
+                    submitFileChange();
+                  }}
+                  handleFileRead={async (path) => {
+                    if (path === '' || currentSelectedServerId === '')
+                      return '';
+                    const fileResponse = await fetch(
                       `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
                         path,
                       )}`,
-                      { method: 'PUT', body: file },
                     );
-                    fetchFileStructure();
-                  });
-                }}
-                handleDownload={async (path, fileName) => {
-                  if (path === '' || currentSelectedServerId === '') return;
-                  const fileResponse = await fetch(
-                    `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                      path,
-                    )}`,
-                  );
-                  if (fileResponse.ok) {
-                    const data = await fileResponse.json();
-                    if (data.success) {
-                      const blob = new Blob([data.data], {
-                        type: 'application/octet-stream',
-                      });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = fileName;
-                      document.body.appendChild(a);
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
+                    if (fileResponse.ok) {
+                      const data = await fileResponse.json();
+                      if (data.success) {
+                        return data.data as string;
+                      }
+                    } else {
+                      return `Error: ${fileResponse.status} ${fileResponse.statusText}`;
                     }
-                  }
-                }}
-                showConfirmDialog={showConfirmDialog}
-              />
+                    return '';
+                  }}
+                  handleCreate={async (path, type) => {
+                    if (currentSelectedServerId === '') return;
+                    startTransition(async () => {
+                      addOptimisticFileStructure({
+                        type: 'create',
+                        payload: { path, type },
+                      });
+                      await fetch(`/api/file-system`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          name: currentSelectedServerId,
+                          type,
+                          path: path,
+                          ...(type === DirectoryType.File
+                            ? { content: '' }
+                            : {}),
+                        }),
+                      });
+                      fetchFileStructure();
+                    });
+                  }}
+                  handleDelete={async (path, type, recursive) => {
+                    if (currentSelectedServerId === '') return false;
+                    if (path === '') {
+                      console.error('Cannot delete root directory');
+                      return false;
+                    }
+                    if (recursive) {
+                      if (type === DirectoryType.File) {
+                        throw new Error(
+                          'Invalid state: recursive delete on file',
+                        );
+                      }
+                      const confirmed = await showConfirmDialog({
+                        title: 'Delete Folder Recursively',
+                        message: `Are you sure you want to recursively delete the folder at ${path} and all its contents?\n\nThis action cannot be undone.`,
+                        checkboxLabel:
+                          'I understand this will delete all contents permanently',
+                        requireCheckbox: true,
+                        confirmText: 'Delete',
+                        cancelText: 'Cancel',
+                      });
+                      if (!confirmed) return false;
+                    }
+                    if (type === DirectoryType.Directory && !recursive) {
+                      const confirmed = await showConfirmDialog({
+                        title: 'Delete Empty Folder',
+                        message: `Are you sure you want to delete the folder at ${path} without deleting its contents?\n\nThis may fail if the folder is not empty.`,
+                        confirmText: 'Delete',
+                        cancelText: 'Cancel',
+                      });
+                      if (!confirmed) return false;
+                    }
+
+                    startTransition(async () => {
+                      addOptimisticFileStructure({
+                        type: 'delete',
+                        payload: { path },
+                      });
+                      try {
+                        const response = await fetch(
+                          `/api/file-system?name=${currentSelectedServerId}`,
+                          {
+                            method: 'DELETE',
+                            body: JSON.stringify({
+                              name: currentSelectedServerId,
+                              path,
+                              type,
+                              recursive,
+                            }),
+                          },
+                        );
+                        if (response.ok) {
+                          setSelectedFiles([]);
+                          fetchFileStructure();
+                        } else {
+                          const data = await response.json();
+                          console.error(
+                            'Delete request failed with status:',
+                            response.status,
+                          );
+                          addNotification(
+                            data.message ||
+                              'Unknown error occurred during deletion.',
+                            NotificationType.Error,
+                          );
+                          fetchFileStructure();
+                        }
+                      } catch (e) {
+                        console.error('Error during delete request:', e);
+                        fetchFileStructure();
+                      }
+                    });
+                    return true;
+                  }}
+                  handleRename={async (oldPath, newPath) => {
+                    if (currentSelectedServerId === '') return;
+                    startTransition(async () => {
+                      addOptimisticFileStructure({
+                        type: 'rename',
+                        payload: { oldPath, newPath },
+                      });
+                      await fetch(`/api/file-system`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          name: currentSelectedServerId,
+                          oldPath,
+                          newPath,
+                        }),
+                      });
+                      setSelectedFiles([]);
+                      fetchFileStructure();
+                    });
+                  }}
+                  handleUpload={async (path, file) => {
+                    if (currentSelectedServerId === '') return;
+                    startTransition(async () => {
+                      addOptimisticFileStructure({
+                        type: 'create',
+                        payload: { path, type: DirectoryType.File },
+                      });
+                      await fetch(
+                        `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
+                          path,
+                        )}`,
+                        { method: 'PUT', body: file },
+                      );
+                      fetchFileStructure();
+                    });
+                  }}
+                  handleDownload={async (path, fileName) => {
+                    if (path === '' || currentSelectedServerId === '') return;
+                    const fileResponse = await fetch(
+                      `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
+                        path,
+                      )}`,
+                    );
+                    if (fileResponse.ok) {
+                      const data = await fileResponse.json();
+                      if (data.success) {
+                        const blob = new Blob([data.data], {
+                          type: 'application/octet-stream',
+                        });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }
+                    }
+                  }}
+                  showConfirmDialog={showConfirmDialog}
+                />
+              </div>
             </div>
           </section>
         )}
