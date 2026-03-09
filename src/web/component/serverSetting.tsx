@@ -92,7 +92,9 @@ export default function ServerSetting({
             className='flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700'
             onClick={() => toggleCategory(category)}
           >
-            <span className='text-base font-semibold md:text-lg'>{category}</span>
+            <span className='text-base font-semibold md:text-lg'>
+              {category}
+            </span>
             {expandedCategories.has(category) ? (
               <ChevronUp className='w-5 h-5' />
             ) : (

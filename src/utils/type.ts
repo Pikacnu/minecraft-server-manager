@@ -226,28 +226,28 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: '1G',
     category: 'General',
-    description: 'JVM initial heap size'
+    description: 'JVM initial heap size',
   },
   {
     key: 'MAX_MEMORY',
     type: FieldType.String,
     example: '2G',
     category: 'General',
-    description: 'JVM maximum heap size'
+    description: 'JVM maximum heap size',
   },
   {
     key: 'ICON',
     type: FieldType.String,
     example: 'https://example.com/icon.png',
     category: 'General',
-    description: 'Server icon URL or path'
+    description: 'Server icon URL or path',
   },
   {
     key: 'SERVER_PORT',
     type: FieldType.Number,
     example: 25565,
     category: 'General',
-    description: 'Server port (default 25565)'
+    description: 'Server port (default 25565)',
   },
   // COMMENTED: Handled by docker image internally
   // {
@@ -262,7 +262,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: 'http://proxy.example.com:8080',
     category: 'General',
-    description: 'HTTP/HTTPS proxy URL'
+    description: 'HTTP/HTTPS proxy URL',
   },
   // COMMENTED: Docker container console setting - always enabled inside container
   // {
@@ -293,21 +293,21 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.Boolean,
     example: false,
     category: 'General',
-    description: 'Setup and stop before launching'
+    description: 'Setup and stop before launching',
   },
   {
     key: 'USE_FLARE_FLAGS',
     type: FieldType.Boolean,
     example: false,
     category: 'General',
-    description: 'Enable Flare profiling JVM flags'
+    description: 'Enable Flare profiling JVM flags',
   },
   {
     key: 'USE_SIMD_FLAGS',
     type: FieldType.Boolean,
     example: false,
     category: 'General',
-    description: 'Enable SIMD optimization'
+    description: 'Enable SIMD optimization',
   },
 
   // Container Runtime
@@ -317,56 +317,56 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     example: 'info',
     options: ['trace', 'debug', 'info', 'warn', 'error'],
     category: 'Container Runtime',
-    description: 'Log level'
+    description: 'Log level',
   },
   {
     key: 'ENABLE_ROLLING_LOGS',
     type: FieldType.Boolean,
     example: true,
     category: 'Container Runtime',
-    description: 'Enable log rotation'
+    description: 'Enable log rotation',
   },
   {
     key: 'LOG_CONSOLE_FORMAT',
     type: FieldType.String,
     example: '[%d{HH:mm:ss}] [%t/%level]: %msg%n',
     category: 'Container Runtime',
-    description: 'Log4j2 pattern for console'
+    description: 'Log4j2 pattern for console',
   },
   {
     key: 'LOG_FILE_FORMAT',
     type: FieldType.String,
     example: '[%d{HH:mm:ss}] [%t/%level]: %msg%n',
     category: 'Container Runtime',
-    description: 'Log4j2 pattern for file logs'
+    description: 'Log4j2 pattern for file logs',
   },
   {
     key: 'LOG_TERMINAL_FORMAT',
     type: FieldType.String,
     example: '[%d{HH:mm:ss} %level]: %msg%n',
     category: 'Container Runtime',
-    description: 'Log4j2 pattern for terminal'
+    description: 'Log4j2 pattern for terminal',
   },
   {
     key: 'ROLLING_LOG_FILE_PATTERN',
     type: FieldType.String,
     example: 'logs/%d{yyyy-MM-dd}-%i.log.gz',
     category: 'Container Runtime',
-    description: 'Rolled log file pattern'
+    description: 'Rolled log file pattern',
   },
   {
     key: 'ROLLING_LOG_MAX_FILES',
     type: FieldType.Number,
     example: 1000,
     category: 'Container Runtime',
-    description: 'Max archived log files'
+    description: 'Max archived log files',
   },
   {
     key: 'LOG_TIMESTAMP',
     type: FieldType.Boolean,
     example: false,
     category: 'Container Runtime',
-    description: 'Include timestamp with logs'
+    description: 'Include timestamp with logs',
   },
 
   // Server
@@ -376,42 +376,42 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     example: 'normal',
     options: ['peaceful', 'easy', 'normal', 'hard'],
     category: 'Server',
-    description: 'Difficulty level'
+    description: 'Difficulty level',
   },
   {
     key: 'MAX_PLAYERS',
     type: FieldType.Number,
     example: 20,
     category: 'Server',
-    description: 'Max players allowed'
+    description: 'Max players allowed',
   },
   {
     key: 'PVP',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Enable PvP'
+    description: 'Enable PvP',
   },
   {
     key: 'LEVEL_TYPE',
     type: FieldType.String,
     example: 'DEFAULT',
     category: 'Server',
-    description: 'World generator type'
+    description: 'World generator type',
   },
   {
     key: 'SERVER_NAME',
     type: FieldType.String,
     example: 'My Server',
     category: 'Server',
-    description: 'Server display name'
+    description: 'Server display name',
   },
   {
     key: 'VIEW_DISTANCE',
     type: FieldType.Number,
     example: 10,
     category: 'Server',
-    description: 'Render distance in chunks'
+    description: 'Render distance in chunks',
   },
   {
     key: 'MODE',
@@ -419,126 +419,126 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     example: 'survival',
     options: ['creative', 'survival', 'adventure', 'spectator'],
     category: 'Server',
-    description: 'Game mode'
+    description: 'Game mode',
   },
   {
     key: 'ICON',
     type: FieldType.String,
     example: 'https://example.com/icon.png',
     category: 'Server',
-    description: 'Server icon URL or path'
+    description: 'Server icon URL or path',
   },
   {
     key: 'OVERRIDE_ICON',
     type: FieldType.Boolean,
     example: false,
     category: 'Server',
-    description: 'Force override existing icon'
+    description: 'Force override existing icon',
   },
   {
     key: 'MAX_WORLD_SIZE',
     type: FieldType.Number,
     example: 29999984,
     category: 'Server',
-    description: 'Maximum world size'
+    description: 'Maximum world size',
   },
   {
     key: 'ALLOW_NETHER',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Enable Nether dimension'
+    description: 'Enable Nether dimension',
   },
   {
     key: 'ENABLE_COMMAND_BLOCK',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Enable command blocks'
+    description: 'Enable command blocks',
   },
   {
     key: 'HARDCORE',
     type: FieldType.Boolean,
     example: false,
     category: 'Server',
-    description: 'Hardcore mode'
+    description: 'Hardcore mode',
   },
   {
     key: 'SPAWN_ANIMALS',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Spawn animals'
+    description: 'Spawn animals',
   },
   {
     key: 'SPAWN_MONSTERS',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Spawn mobs'
+    description: 'Spawn mobs',
   },
   {
     key: 'SPAWN_NPCS',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Spawn villagers'
+    description: 'Spawn villagers',
   },
   {
     key: 'GENERATE_STRUCTURES',
     type: FieldType.Boolean,
     example: true,
     category: 'Server',
-    description: 'Generate villages and structures'
+    description: 'Generate villages and structures',
   },
   {
     key: 'SEED',
     type: FieldType.String,
     example: '123456789',
     category: 'Server',
-    description: 'World seed'
+    description: 'World seed',
   },
   {
     key: 'ALLOW_FLIGHT',
     type: FieldType.Boolean,
     example: false,
     category: 'Server',
-    description: 'Allow flying in survival mode'
+    description: 'Allow flying in survival mode',
   },
   {
     key: 'MOTD',
     type: FieldType.String,
     example: 'A Minecraft Server',
     category: 'Server',
-    description: 'Message of the day'
+    description: 'Message of the day',
   },
   {
     key: 'LEVEL',
     type: FieldType.String,
     example: 'world',
     category: 'Server',
-    description: 'World/level name'
+    description: 'World/level name',
   },
   {
     key: 'WORLD',
     type: FieldType.String,
     example: 'https://example.com/world.zip',
     category: 'Server',
-    description: 'Downloadable world URL or local path'
+    description: 'Downloadable world URL or local path',
   },
   {
     key: 'WORLD_INDEX',
     type: FieldType.Number,
     example: 1,
     category: 'Server',
-    description: 'Select level.dat if archive has multiple'
+    description: 'Select level.dat if archive has multiple',
   },
   {
     key: 'FORCE_WORLD_COPY',
     type: FieldType.Boolean,
     example: false,
     category: 'Server',
-    description: 'Force overwrite world on every start'
+    description: 'Force overwrite world on every start',
   },
 
   // Resource Pack
@@ -579,28 +579,28 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.Boolean,
     example: true,
     category: 'Whitelist',
-    description: 'Enable whitelist'
+    description: 'Enable whitelist',
   },
   {
     key: 'WHITELIST',
     type: FieldType.String,
     example: 'player1,player2',
     category: 'Whitelist',
-    description: 'Comma-separated list of players'
+    description: 'Comma-separated list of players',
   },
   {
     key: 'WHITELIST_FILE',
     type: FieldType.String,
     example: '/config/whitelist.json',
     category: 'Whitelist',
-    description: 'Whitelist JSON file path'
+    description: 'Whitelist JSON file path',
   },
   {
     key: 'OVERRIDE_WHITELIST',
     type: FieldType.Boolean,
     example: false,
     category: 'Whitelist',
-    description: 'Force regenerate whitelist'
+    description: 'Force regenerate whitelist',
   },
 
   // RCON
@@ -609,63 +609,63 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.Boolean,
     example: true,
     category: 'RCON',
-    description: 'Enable remote console'
+    description: 'Enable remote console',
   },
   {
     key: 'RCON_PORT',
     type: FieldType.Number,
     example: 25575,
     category: 'RCON',
-    description: 'RCON port'
+    description: 'RCON port',
   },
   {
     key: 'RCON_PASSWORD',
     type: FieldType.String,
     example: 'password',
     category: 'RCON',
-    description: 'RCON password'
+    description: 'RCON password',
   },
   {
     key: 'BROADCAST_RCON_TO_OPS',
     type: FieldType.Boolean,
     example: false,
     category: 'RCON',
-    description: 'Broadcast RCON to ops'
+    description: 'Broadcast RCON to ops',
   },
   {
     key: 'RCON_CMDS_STARTUP',
     type: FieldType.String,
     example: 'say Server started',
     category: 'RCON',
-    description: 'Commands at server start'
+    description: 'Commands at server start',
   },
   {
     key: 'RCON_CMDS_ON_CONNECT',
     type: FieldType.String,
     example: 'say Player joined',
     category: 'RCON',
-    description: 'Commands on player join'
+    description: 'Commands on player join',
   },
   {
     key: 'RCON_CMDS_FIRST_CONNECT',
     type: FieldType.String,
     example: 'say First player joined',
     category: 'RCON',
-    description: 'Commands on first player join'
+    description: 'Commands on first player join',
   },
   {
     key: 'RCON_CMDS_ON_DISCONNECT',
     type: FieldType.String,
     example: 'say Player left',
     category: 'RCON',
-    description: 'Commands on player leave'
+    description: 'Commands on player leave',
   },
   {
     key: 'RCON_CMDS_LAST_DISCONNECT',
     type: FieldType.String,
     example: 'say Last player left',
     category: 'RCON',
-    description: 'Commands on last player leave'
+    description: 'Commands on last player leave',
   },
 
   // Auto Pause
@@ -674,49 +674,49 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.Boolean,
     example: true,
     category: 'Auto Pause',
-    description: 'Enable auto-pause'
+    description: 'Enable auto-pause',
   },
   {
     key: 'AUTOPAUSE_TIMEOUT_EST',
     type: FieldType.Number,
     example: 3600,
     category: 'Auto Pause',
-    description: 'Timeout when empty (seconds)'
+    description: 'Timeout when empty (seconds)',
   },
   {
     key: 'AUTOPAUSE_TIMEOUT_INIT',
     type: FieldType.Number,
     example: 600,
     category: 'Auto Pause',
-    description: 'Timeout before first player (seconds)'
+    description: 'Timeout before first player (seconds)',
   },
   {
     key: 'AUTOPAUSE_TIMEOUT_KN',
     type: FieldType.Number,
     example: 120,
     category: 'Auto Pause',
-    description: 'Timeout keepalive (seconds)'
+    description: 'Timeout keepalive (seconds)',
   },
   {
     key: 'AUTOPAUSE_PERIOD',
     type: FieldType.Number,
     example: 10,
     category: 'Auto Pause',
-    description: 'State machine period (seconds)'
+    description: 'State machine period (seconds)',
   },
   {
     key: 'AUTOPAUSE_KNOCK_INTERFACE',
     type: FieldType.String,
     example: 'eth0',
     category: 'Auto Pause',
-    description: 'Network interface for knockd'
+    description: 'Network interface for knockd',
   },
   {
     key: 'DEBUG_AUTOPAUSE',
     type: FieldType.Boolean,
     example: false,
     category: 'Auto Pause',
-    description: 'Enable autopause debug'
+    description: 'Enable autopause debug',
   },
 
   // Datapacks
@@ -725,42 +725,42 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: 'https://example.com/datapack.zip',
     category: 'Datapacks',
-    description: 'Comma-separated datapack URLs or paths'
+    description: 'Comma-separated datapack URLs or paths',
   },
   {
     key: 'DATAPACKS_FILE',
     type: FieldType.String,
     example: '/config/datapacks.txt',
     category: 'Datapacks',
-    description: 'Text file with datapack URLs'
+    description: 'Text file with datapack URLs',
   },
   {
     key: 'REMOVE_OLD_DATAPACKS',
     type: FieldType.Boolean,
     example: false,
     category: 'Datapacks',
-    description: 'Remove old datapacks'
+    description: 'Remove old datapacks',
   },
   {
     key: 'REMOVE_OLD_DATAPACKS_DEPTH',
     type: FieldType.Number,
     example: 16,
     category: 'Datapacks',
-    description: 'Removal depth'
+    description: 'Removal depth',
   },
   {
     key: 'REMOVE_OLD_DATAPACKS_INCLUDE',
     type: FieldType.String,
     example: '*.zip',
     category: 'Datapacks',
-    description: 'Include pattern'
+    description: 'Include pattern',
   },
   {
     key: 'REMOVE_OLD_DATAPACKS_EXCLUDE',
     type: FieldType.String,
     example: '',
     category: 'Datapacks',
-    description: 'Exclude pattern'
+    description: 'Exclude pattern',
   },
 
   // VanillaTweaks
@@ -769,14 +769,14 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: '/config/vt.json',
     category: 'VanillaTweaks',
-    description: 'VanillaTweaks JSON files'
+    description: 'VanillaTweaks JSON files',
   },
   {
     key: 'VANILLATWEAKS_SHARECODE',
     type: FieldType.String,
     example: 'MGr52E',
     category: 'VanillaTweaks',
-    description: 'VanillaTweaks share codes'
+    description: 'VanillaTweaks share codes',
   },
 
   // JVM Tuning
@@ -785,56 +785,56 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: '',
     category: 'JVM Tuning',
-    description: 'XX JVM options'
+    description: 'XX JVM options',
   },
   {
     key: 'JVM_DD_OPTS',
     type: FieldType.String,
     example: '',
     category: 'JVM Tuning',
-    description: 'Java system properties'
+    description: 'Java system properties',
   },
   {
     key: 'USE_AIKAR_FLAGS',
     type: FieldType.Boolean,
     example: false,
     category: 'JVM Tuning',
-    description: 'Enable Aikar GC tuning'
+    description: 'Enable Aikar GC tuning',
   },
   {
     key: 'USE_MEOWICE_FLAGS',
     type: FieldType.Boolean,
     example: false,
     category: 'JVM Tuning',
-    description: 'Enable MeowIce flags (Java 17+)'
+    description: 'Enable MeowIce flags (Java 17+)',
   },
   {
     key: 'USE_MEOWICE_GRAALVM_FLAGS',
     type: FieldType.Boolean,
     example: true,
     category: 'JVM Tuning',
-    description: 'Enable MeowIce GraalVM flags'
+    description: 'Enable MeowIce GraalVM flags',
   },
   {
     key: 'ENABLE_JMX',
     type: FieldType.Boolean,
     example: false,
     category: 'JVM Tuning',
-    description: 'Enable remote JMX profiling'
+    description: 'Enable remote JMX profiling',
   },
   {
     key: 'JMX_HOST',
     type: FieldType.String,
     example: '',
     category: 'JVM Tuning',
-    description: 'JMX host IP/hostname'
+    description: 'JMX host IP/hostname',
   },
   {
     key: 'EXTRA_ARGS',
     type: FieldType.String,
     example: '',
     category: 'JVM Tuning',
-    description: 'Extra arguments after jar'
+    description: 'Extra arguments after jar',
   },
 
   // CurseForge
@@ -843,70 +843,70 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     type: FieldType.String,
     example: 'key',
     category: 'CurseForge',
-    description: 'CurseForge API key'
+    description: 'CurseForge API key',
   },
   {
     key: 'CF_API_KEY_FILE',
     type: FieldType.String,
     example: '/config/cf-api-key',
     category: 'CurseForge',
-    description: 'Path to CurseForge API key file'
+    description: 'Path to CurseForge API key file',
   },
   {
     key: 'CF_PAGE_URL',
     type: FieldType.String,
     example: 'https://www.curseforge.com/minecraft/modpacks/example',
     category: 'CurseForge',
-    description: 'CurseForge modpack page URL'
+    description: 'CurseForge modpack page URL',
   },
   {
     key: 'CF_SLUG',
     type: FieldType.String,
     example: 'modpack-slug',
     category: 'CurseForge',
-    description: 'CurseForge modpack slug'
+    description: 'CurseForge modpack slug',
   },
   {
     key: 'CF_FILE_ID',
     type: FieldType.Number,
     example: 12345,
     category: 'CurseForge',
-    description: 'CurseForge file ID'
+    description: 'CurseForge file ID',
   },
   {
     key: 'CF_FILENAME_MATCHER',
     type: FieldType.String,
     example: '',
     category: 'CurseForge',
-    description: 'Substring to match filename'
+    description: 'Substring to match filename',
   },
   {
     key: 'CF_EXCLUDE_INCLUDE_FILE',
     type: FieldType.String,
     example: '',
     category: 'CurseForge',
-    description: 'JSON file for mod exclusions'
+    description: 'JSON file for mod exclusions',
   },
   {
     key: 'CF_EXCLUDE_MODS',
     type: FieldType.String,
     example: 'mod-slug1,mod-slug2',
     category: 'CurseForge',
-    description: 'Mods to exclude (slugs/IDs)'
+    description: 'Mods to exclude (slugs/IDs)',
   },
   {
     key: 'CF_FORCE_INCLUDE_MODS',
     type: FieldType.String,
     example: 'mod-slug1,mod-slug2',
     category: 'CurseForge',
-    description: 'Mods to force include'
+    description: 'Mods to force include',
   },
   {
     key: 'CF_FORCE_SYNCHRONIZE',
     type: FieldType.Boolean,
     example: false,
     category: 'CurseForge',
-    description: 'Force re-evaluate excludes'
+    description: 'Force re-evaluate excludes',
   },
   {
     key: 'CF_SET_LEVEL_FROM',
@@ -914,28 +914,28 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     example: 'WORLD_FILE',
     options: ['WORLD_FILE', 'OVERRIDES'],
     category: 'CurseForge',
-    description: 'Set LEVEL from'
+    description: 'Set LEVEL from',
   },
   {
     key: 'CF_PARALLEL_DOWNLOADS',
     type: FieldType.Number,
     example: 4,
     category: 'CurseForge',
-    description: 'Parallel mod downloads'
+    description: 'Parallel mod downloads',
   },
   {
     key: 'CF_OVERRIDES_SKIP_EXISTING',
     type: FieldType.Boolean,
     example: false,
     category: 'CurseForge',
-    description: 'Skip existing override files'
+    description: 'Skip existing override files',
   },
   {
     key: 'CF_MOD_LOADER_VERSION',
     type: FieldType.String,
     example: '',
     category: 'CurseForge',
-    description: 'Override mod loader version'
+    description: 'Override mod loader version',
   },
 
   // Modrinth
