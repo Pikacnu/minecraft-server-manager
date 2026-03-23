@@ -337,7 +337,7 @@ export default function Settings() {
       <div className='w-full rounded-xl border border-gray-300 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:w-64 md:p-4'>
         <h1 className='text-xl font-bold mb-4 flex flex-row items-center gap-2'>
           <SettingsIcon className='w-5 h-5' />
-          {device !== DeviceType.Mobile && <span>'Settings'</span>}
+          {device !== DeviceType.Mobile && <span>Settings</span>}
         </h1>
         <nav className='flex gap-1 overflow-x-auto md:block md:space-y-1 md:overflow-visible'>
           {tabs.map((tab) => (
