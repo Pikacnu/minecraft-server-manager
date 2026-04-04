@@ -5,6 +5,7 @@ import {
   RCONPassword,
   VelocitySecret,
   ManagerMountPath,
+  isEnabledNFS,
 } from '@/utils/config';
 import type {
   MinecraftServerDeploymentsGeneratorArguments,
@@ -451,7 +452,7 @@ secret = "${VelocitySecret}"
       },
     ],
     PVs: [
-      isDevelopment
+      isDevelopment || !isEnabledNFS
         ? {
             body: {
               apiVersion: 'v1',

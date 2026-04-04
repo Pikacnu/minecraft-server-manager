@@ -7,6 +7,7 @@ export const RCONPassword = process.env.RCON_PASSWORD || 'rconpassword';
 export const NFSServer = process.env.NFS_SERVER || 'nfs-server.local';
 export const NFSRootPath =
   process.env.NFS_ROOT_PATH || '/mnt/nfs/minecraft-server-data';
+export const isEnabledNFS = NFSServer && NFSRootPath;
 export const LocalMountPath =
   process.env.LOCAL_MOUNT_PATH && !isDevelopment
     ? process.env.LOCAL_MOUNT_PATH
