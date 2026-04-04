@@ -6,11 +6,11 @@
 
 // Bedrock Geyser Configuration
 export interface GeyseBedrock {
-  port: number;
-  motd1: string;
-  motd2: string;
-  'server-name': string;
-  'compression-level': number;
+  port?: number;
+  motd1?: string;
+  motd2?: string;
+  'server-name'?: string;
+  'compression-level'?: number;
 }
 
 export interface GeyseConfigOverrides {
@@ -27,6 +27,23 @@ export interface GeyseConfigOverrides {
   'use-direct-connection'?: boolean;
   'force-resource-packs'?: boolean;
   'enable-proxy-connections'?: boolean;
+  // Others
+  'floodgate-key-file'?: string;
+  'command-suggestions'?: boolean;
+  'passthrough-motd'?: boolean;
+  'passthrough-protocol-name'?: boolean;
+  'passthrough-player-counts'?: boolean;
+  'legacy-ping-passthrough'?: boolean;
+  'ping-passthrough-interval'?: number;
+  'max-players'?: number;
+  'allow-third-party-capes'?: boolean;
+  'allow-third-party-ears'?: boolean;
+  'emote-offhand-workaround'?: string;
+  'default-locale'?: string;
+  'cache-chunks'?: boolean;
+  'cache-images'?: number;
+  'above-bedrock-nether-building'?: boolean;
+  'scoreboard-packet-threshold'?: number;
   [key: string]: any;
 }
 
@@ -525,6 +542,110 @@ export const FIELD_METADATA: Record<string, FieldMetadata> = {
     description: 'Automatically download Geyser JAR updates',
     defaultValue: true,
   },
+  'config.bedrock.managed.configOverrides.bedrock.port': {
+    type: 'number',
+    label: 'Bedrock UDP Port',
+    description: 'The UDP port Bedrock clients connect to',
+    defaultValue: 19132,
+  },
+  'config.bedrock.managed.configOverrides.bedrock.motd1': {
+    type: 'string',
+    label: 'Bedrock MOTD Line 1',
+    description: 'First line of the MOTD for Bedrock players',
+  },
+  'config.bedrock.managed.configOverrides.bedrock.motd2': {
+    type: 'string',
+    label: 'Bedrock MOTD Line 2',
+    description: 'Second line of the MOTD for Bedrock players',
+  },
+  'config.bedrock.managed.configOverrides.bedrock.server-name': {
+    type: 'string',
+    label: 'Bedrock Server Name',
+    description: 'The world name shown in the Bedrock pause screen',
+  },
+  'config.bedrock.managed.configOverrides.bedrock.compression-level': {
+    type: 'number',
+    label: 'Bedrock Compression Level',
+    description: 'Compression level for Bedrock traffic (-1 to 9)',
+    defaultValue: 6,
+  },
+  'config.bedrock.managed.configOverrides.debug-mode': {
+    type: 'boolean',
+    label: 'Geyser Debug Mode',
+    description: 'Show debug messages in console',
+    defaultValue: false,
+  },
+  'config.bedrock.managed.configOverrides.forward-player-ping': {
+    type: 'boolean',
+    label: 'Forward Player Ping',
+    description: 'Forward player ping to Gate',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.show-cooldown': {
+    type: 'select',
+    label: 'Show Cooldown',
+    description: 'Show block break cooldown as title or actionbar',
+    defaultValue: 'title',
+    options: [
+      { label: 'Title', value: 'title' },
+      { label: 'Actionbar', value: 'actionbar' },
+      { label: 'False', value: 'false' },
+    ],
+  },
+  'config.bedrock.managed.configOverrides.show-coordinates': {
+    type: 'boolean',
+    label: 'Show Coordinates',
+    description: 'Show coordinates in debug info',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.allow-custom-skulls': {
+    type: 'boolean',
+    label: 'Allow Custom Skulls',
+    description: 'Allow custom player skulls from Java Edition',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.max-visible-custom-skulls': {
+    type: 'number',
+    label: 'Max Visible Custom Skulls',
+    description: 'Maximum visible custom skulls (performance)',
+    defaultValue: 128,
+  },
+  'config.bedrock.managed.configOverrides.xbox-achievements-enabled': {
+    type: 'boolean',
+    label: 'Xbox Achievements',
+    description: 'Enable Xbox achievements',
+    defaultValue: false,
+  },
+  'config.bedrock.managed.configOverrides.add-non-bedrock-items': {
+    type: 'boolean',
+    label: 'Add Non-Bedrock Items',
+    description: 'Add non-Bedrock items to Creative inventory',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.mtu': {
+    type: 'number',
+    label: 'MTU Size',
+    description: 'MTU size for UDP packets',
+    defaultValue: 1400,
+  },
+  'config.bedrock.managed.configOverrides.use-direct-connection': {
+    type: 'boolean',
+    label: 'Use Direct Connection',
+    description: 'Use direct connections when possible',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.force-resource-packs': {
+    type: 'boolean',
+    label: 'Force Resource Packs',
+    description: 'Force Resource packs to be applied',
+    defaultValue: true,
+  },
+  'config.bedrock.managed.configOverrides.enable-proxy-connections': {
+    type: 'boolean',
+    label: 'Proxy Connections',
+    description: 'Enable proxy connections',
+    defaultValue: false,
+  },
   'connect.enabled': {
     type: 'boolean',
     label: 'Connect Service',
@@ -542,6 +663,43 @@ export const FIELD_METADATA: Record<string, FieldMetadata> = {
     label: 'API Enabled',
     description: 'Enable HTTP API for Gate',
     defaultValue: false,
+  },
+  'config.bedrock.geyserListenAddr': {
+    type: 'string',
+    label: 'Geyser Listen Address',
+    description:
+      'TCP address where Gate listens for connections from Geyser Standalone',
+    defaultValue: 'localhost:25567',
+  },
+  'config.bedrock.usernameFormat': {
+    type: 'string',
+    label: 'Username Format',
+    description:
+      'Bedrock player username format to avoid conflicts with Java players',
+    defaultValue: '.%s',
+  },
+  'config.bedrock.floodgateKeyPath': {
+    type: 'string',
+    label: 'Floodgate Key Path',
+    description: 'Path to the Floodgate encryption key file',
+    defaultValue: 'floodgate.pem',
+  },
+  'config.bedrock.managed.jarUrl': {
+    type: 'string',
+    label: 'Geyser Jar URL',
+    description: 'Download URL for Geyser Standalone JAR file',
+  },
+  'config.bedrock.managed.dataDir': {
+    type: 'string',
+    label: 'Geyser Data Directory',
+    description: 'Directory for Geyser data',
+    defaultValue: '.geyser',
+  },
+  'config.bedrock.managed.javaPath': {
+    type: 'string',
+    label: 'Java Path',
+    description: 'Path to Java executable for running Geyser',
+    defaultValue: 'java',
   },
 };
 

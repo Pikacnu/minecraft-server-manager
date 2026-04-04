@@ -40,6 +40,13 @@ export const gateDeployment: ServicesDeployments = {
               ...(isDevelopment && { nodePort: 30065 }),
             },
             {
+              name: 'bedrock-port',
+              protocol: 'UDP',
+              port: 19132,
+              targetPort: 19132,
+              ...(isDevelopment && { nodePort: 30065 }),
+            },
+            {
               name: 'api-port',
               protocol: 'TCP',
               port: 8080,
