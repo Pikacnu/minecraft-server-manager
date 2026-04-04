@@ -8,9 +8,13 @@ export const NFSServer = process.env.NFS_SERVER;
 export const NFSRootPath = process.env.NFS_ROOT_PATH;
 export const isEnabledNFS =
   !!NFSServer &&
+  NFSServer !== '' &&
   !!NFSRootPath &&
-  NFSServer.length > 0 &&
-  NFSRootPath.length > 0;
+  NFSRootPath !== '';
+export const StorageClassNameNFS =
+  process.env.STORAGE_CLASS_NAME_NFS || 'nfs-client';
+export const StorageClassNameLocal =
+  process.env.STORAGE_CLASS_NAME_LOCAL || 'local-path';
 export const LocalMountPath =
   process.env.LOCAL_MOUNT_PATH && !isDevelopment
     ? process.env.LOCAL_MOUNT_PATH

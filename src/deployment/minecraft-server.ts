@@ -6,6 +6,8 @@ import {
   VelocitySecret,
   ManagerMountPath,
   isEnabledNFS,
+  StorageClassNameLocal,
+  StorageClassNameNFS,
 } from '@/utils/config';
 import type {
   MinecraftServerDeploymentsGeneratorArguments,
@@ -442,7 +444,9 @@ secret = "${VelocitySecret}"
           spec: {
             accessModes: ['ReadWriteOnce'],
             storageClassName:
-              isDevelopment || !isEnabledNFS ? 'local-path' : 'nfs-client',
+              isDevelopment || !isEnabledNFS
+                ? StorageClassNameLocal
+                : StorageClassNameNFS,
             resources: {
               requests: {
                 storage: '10Gi',
@@ -473,7 +477,7 @@ secret = "${VelocitySecret}"
                 hostPath: {
                   path: '/var/minecraft/data/' + name,
                 },
-                storageClassName: 'local-path',
+                storageClassName: StorageClassNameLocal,
               },
             },
           }
@@ -494,7 +498,7 @@ secret = "${VelocitySecret}"
                 },
                 accessModes: ['ReadWriteOnce'],
                 persistentVolumeReclaimPolicy: 'Retain',
-                storageClassName: 'nfs-client',
+                storageClassName: StorageClassNameNFS,
                 nfs: {
                   path: `${NFSRootPath}/${ManagerMountPath}/${name}`,
                   server: NFSServer,
