@@ -197,7 +197,7 @@ export default function Server() {
                             NotificationType.Success,
                           );
                           setServerInfo((prev) =>
-                            prev.filter((s) => s.id !== server.id),
+                            prev.filter((s) => s.id !== server.name),
                           );
                         } else {
                           addNotification(

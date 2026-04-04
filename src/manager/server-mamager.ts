@@ -7,7 +7,6 @@ import gateClient from '@/utils/gate';
 import {
   PhaseEnum,
   Watcher,
-  applyYamlToConfigMap,
   deleteService,
   deployService,
   getConfigMapData,
@@ -15,7 +14,6 @@ import {
   k8sApiEndpoint,
   patchConfigMap,
   patchDeployment,
-  resumeDeploymentRollout,
   stopDeploymentRollout,
 } from '@/utils/k8s';
 import {
@@ -27,11 +25,7 @@ import { ServerController } from './server-controller';
 import { isDevelopment } from '@/utils/config';
 import { minecraftServerDeployment } from '@/deployment/minecraft-server';
 import { FileController, FileControllerManager } from './file-manager';
-import {
-  DomainManager,
-  generateMinecraftSRVName,
-  getTopLevelDomain,
-} from './domain-manager';
+import { DomainManager, getTopLevelDomain } from './domain-manager';
 import { TaskQueue } from '@/utils/taskQueue';
 
 export enum ServerStatusEnum {
@@ -105,7 +99,13 @@ export class Manager {
         }
 
         if (phase === PhaseEnum.DELETED) {
-          this.servers.delete(servicesName);
+          const serverNameFromService = this.serviceNameToServerName.get(servicesName);
+          if (serverNameFromService) {
+            this.servers.delete(serverNameFromService);
+            this.serviceNameToServerName.delete(servicesName);
+          } else {
+            this.servers.delete(servicesName);
+          }
         }
 
         this.configMapTaskQueue.addTask(async () => {

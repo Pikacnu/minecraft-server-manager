@@ -441,7 +441,8 @@ secret = "${VelocitySecret}"
           },
           spec: {
             accessModes: ['ReadWriteOnce'],
-            storageClassName: 'minecraft-server-storage-class',
+            storageClassName:
+              isDevelopment || !isEnabledNFS ? 'local-path' : 'nfs-client',
             resources: {
               requests: {
                 storage: '10Gi',
@@ -472,7 +473,7 @@ secret = "${VelocitySecret}"
                 hostPath: {
                   path: '/var/minecraft/data/' + name,
                 },
-                storageClassName: 'minecraft-server-storage-class',
+                storageClassName: 'local-path',
               },
             },
           }
@@ -493,7 +494,7 @@ secret = "${VelocitySecret}"
                 },
                 accessModes: ['ReadWriteOnce'],
                 persistentVolumeReclaimPolicy: 'Retain',
-                storageClassName: 'minecraft-server-storage-class',
+                storageClassName: 'nfs-client',
                 nfs: {
                   path: `${NFSRootPath}/${ManagerMountPath}/${name}`,
                   server: NFSServer,
