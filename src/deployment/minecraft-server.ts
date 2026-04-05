@@ -57,6 +57,10 @@ export const minecraftServerDeployment: ServicesDeplymentsGenerator<
               name: name,
               category: 'minecraft-server',
               ...(domain ? { domain } : {}),
+              'add-into-try-host':
+                Variables?.ADD_INTO_TRY_HOST !== undefined
+                  ? String(Variables.ADD_INTO_TRY_HOST)
+                  : 'true',
             },
           },
           spec: {

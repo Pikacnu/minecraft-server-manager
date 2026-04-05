@@ -161,6 +161,7 @@ export interface FieldDefinition {
   key: string;
   type: FieldType;
   example: any;
+  defaultValue?: any;
   category: string;
   options?: string[];
   description?: string;
@@ -403,8 +404,16 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     key: 'SERVER_NAME',
     type: FieldType.String,
     example: 'My Server',
-    category: 'Server',
+    category: 'Deployment',
     description: 'Server display name',
+  },
+  {
+    key: 'ADD_INTO_TRY_HOST',
+    type: FieldType.Boolean,
+    example: 'true',
+    defaultValue: 'true',
+    category: 'Deployment',
+    description: 'Add this server into the fallback try list for Gate',
   },
   {
     key: 'VIEW_DISTANCE',
@@ -453,6 +462,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     key: 'ENABLE_COMMAND_BLOCK',
     type: FieldType.Boolean,
     example: true,
+    defaultValue: true,
     category: 'Server',
     description: 'Enable command blocks',
   },
@@ -460,6 +470,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     key: 'HARDCORE',
     type: FieldType.Boolean,
     example: false,
+    defaultValue: false,
     category: 'Server',
     description: 'Hardcore mode',
   },
@@ -467,6 +478,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     key: 'SPAWN_ANIMALS',
     type: FieldType.Boolean,
     example: true,
+    defaultValue: true,
     category: 'Server',
     description: 'Spawn animals',
   },
@@ -474,6 +486,7 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
     key: 'SPAWN_MONSTERS',
     type: FieldType.Boolean,
     example: true,
+    defaultValue: true,
     category: 'Server',
     description: 'Spawn mobs',
   },

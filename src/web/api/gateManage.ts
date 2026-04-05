@@ -4,7 +4,10 @@ import {
   getDeploymentData,
   patchConfigMap,
   patchDeployment,
+  deleteService,
+  deployService,
 } from '@/utils/k8s';
+import { gateDeployment } from '@/deployment/gate';
 import type { GateConfig } from '@/utils/type';
 import {
   filterGateConfig,
@@ -56,7 +59,7 @@ async function GET(request: Request): Promise<Response> {
 async function POST(request: Request): Promise<Response> {
   try {
     const { action, config } = (await request.json()) as {
-      action: 'restart' | 'updateConfig';
+      action: 'restart' | 'redeploy' | 'updateConfig';
       config?: Partial<GateConfig>;
     };
 
@@ -73,6 +76,32 @@ async function POST(request: Request): Promise<Response> {
         return Response.json({
           status: 'ok',
           message: 'Gate server restart initiated',
+        });
+      }
+
+      case 'redeploy': {
+        // We only want to delete the Service and Deployment, not ConfigMap or Namespace
+        const targetResources = {
+          Services: gateDeployment.Services,
+          Deployments: gateDeployment.Deployments,
+        };
+        try {
+          await deleteService(targetResources);
+        } catch (e) {
+          console.error(
+            'Failed to delete old gate deployment, proceeding to deploy anyway:',
+            e,
+          );
+        }
+
+        // Let K8s clean up resources before recreating
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        await deployService(targetResources, { log: true });
+
+        return Response.json({
+          status: 'ok',
+          message: 'Gate server redeployment initiated',
         });
       }
 

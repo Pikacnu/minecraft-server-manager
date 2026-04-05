@@ -57,8 +57,10 @@ try {
   }
 
   // Initialize Gate Client
-  await deployService(gateDeployment, { log: true });
-  console.log('Gate client initialized.');
+  deployService(gateDeployment, { log: true })
+    .then(() => console.log('Gate client initialization process finished.'))
+    .catch((error) => console.error('Failed to initialize gate client:', error));
+  console.log('Gate client initialization started in background.');
 
   // Start the web server
   const server = await webServer({

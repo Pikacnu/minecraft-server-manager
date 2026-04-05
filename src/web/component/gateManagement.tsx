@@ -16,15 +16,12 @@ import type { GateConfig } from '@/utils/type';
 import {
   isReadOnlyField,
   filterGateConfig,
-  isGateConfigEqual,
   getFieldMetadata,
   getFieldOptions,
   getFieldDefault,
-  getFieldType,
   getAvailableFieldSuggestions,
   getFieldNameSuggestions,
   type FieldSuggestion,
-  type GateConfig as TypedGateConfig,
 } from '@/utils/gateConfig';
 
 interface GateStatus {
@@ -60,6 +57,70 @@ const defaultAddFieldDraft: AddFieldDraft = {
   key: '',
   type: 'string',
   value: '',
+};
+
+const DEFAULT_OBJECT_TEMPLATES: Record<string, JsonObject> = {
+  'config.bedrock': {
+    enabled: false,
+    usernameFormat: '.%s',
+    geyserListenAddr: 'localhost:19132',
+    floodgateKeyPath: 'floodgate.pem',
+    managed: {
+      enabled: false,
+      autoUpdate: true,
+      dataDir: '.geyser',
+    },
+  },
+  'config.bedrock.managed': {
+    enabled: false,
+    autoUpdate: true,
+    dataDir: '.geyser',
+  },
+  'config.bedrock.managed.configOverrides': {
+    'debug-mode': false,
+    'forward-player-ping': true,
+    'show-coordinates': true,
+    'allow-custom-skulls': true,
+    'add-non-bedrock-items': true,
+  },
+  'config.quota': {
+    connections: { enabled: true, ops: 5, burst: 10, maxEntries: 1000 },
+    logins: { enabled: true, ops: 0.4, burst: 3, maxEntries: 1000 },
+  },
+  'config.quota.connections': {
+    enabled: true,
+    ops: 5,
+    burst: 10,
+    maxEntries: 1000,
+  },
+  'config.quota.logins': {
+    enabled: true,
+    ops: 0.4,
+    burst: 3,
+    maxEntries: 1000,
+  },
+  'config.query': {
+    enabled: false,
+    port: 25577,
+    showPlugins: false,
+  },
+  'config.status': {
+    showMaxPlayers: 1000,
+    logPingRequests: false,
+    announceForge: false,
+  },
+  'connect': {
+    enabled: false,
+    allowOfflineModePlayers: false,
+  },
+  'config.lite': {
+    enabled: false,
+    routes: [],
+  },
+  'config.compression': {
+    threshold: 256,
+    level: -1,
+  },
 };
 
 function mapFieldTypeToDraftType(
@@ -255,7 +316,7 @@ export default function GateManagement() {
       case 'number': {
         const n = Number(draft.value);
         if (Number.isNaN(n)) {
-          throw new Error('Invalid number value');
+          return 0;
         }
         return n;
       }
@@ -263,7 +324,7 @@ export default function GateManagement() {
         const lowered = draft.value.trim().toLowerCase();
         if (lowered === 'true') return true;
         if (lowered === 'false') return false;
-        throw new Error('Boolean value must be true or false');
+        return false;
       }
       case 'object':
         return {};
@@ -305,6 +366,13 @@ export default function GateManagement() {
       return;
     }
 
+    if (draft.type === 'object') {
+      const targetPath = objectPath ? `${objectPath}.${key}` : key;
+      if (DEFAULT_OBJECT_TEMPLATES[targetPath]) {
+        parsedValue = deepClone(DEFAULT_OBJECT_TEMPLATES[targetPath]!);
+      }
+    }
+
     let added = false;
     setEditableConfig((prev) => {
       if (!prev) return prev;
@@ -339,6 +407,54 @@ export default function GateManagement() {
       [objectPath]: defaultAddFieldDraft,
     }));
     addNotification(`Added field ${key}`, NotificationType.Success, 1200);
+  };
+
+  const handleRedeploy = async () => {
+    const confirmed = await showConfirmDialog({
+      title: 'Reset & Redeploy Gate',
+      message:
+        'Are you sure you want to reset and redeploy the Gate proxy server?\n\nThis will temporarily disconnect all players and apply new NodePort allocations if changed in config.',
+      confirmText: 'Redeploy',
+      cancelText: 'Cancel',
+    });
+
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    addNotification(
+      'Redeployment initiated, this will take a few seconds...',
+      NotificationType.Info,
+    );
+    try {
+      const response = await fetch('/api/gate-manage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'redeploy',
+        }),
+      });
+
+      if (response.ok) {
+        addNotification(
+          'Gate redeployed successfully!',
+          NotificationType.Success,
+        );
+        setTimeout(fetchGateStatus, 3500); // Fetch new status after a delay
+      } else {
+        const errorData = await response.json();
+        addNotification(
+          `Failed to redeploy Gate: ${errorData.message}`,
+          NotificationType.Error,
+        );
+      }
+    } catch (error) {
+      console.error('Redeploy failed:', error);
+      addNotification('Failed to redeploy Gate', NotificationType.Error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRestart = async () => {
@@ -389,10 +505,11 @@ export default function GateManagement() {
     const confirmed = await showConfirmDialog({
       title: 'Update Gate Configuration',
       message:
-        'Updating the Gate proxy configuration will restart the server and temporarily disconnect all players.\n\nAre you sure you want to continue?',
-      checkboxLabel: 'I understand this will restart the Gate proxy',
+        'Updating the Gate proxy configuration might cause issues if there are errors in the config. Are you sure you want to continue?\n\nMake sure to double-check your changes before confirming.',
+      checkboxLabel:
+        'I have reviewed my changes and understand that incorrect configuration might break the Gate proxy server',
       requireCheckbox: true,
-      confirmText: 'Update & Restart',
+      confirmText: 'Update Configuration',
       cancelText: 'Cancel',
     });
 
@@ -692,7 +809,8 @@ export default function GateManagement() {
 
                 <select
                   value={addDraft.type}
-                  className='w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-900'
+                  disabled={!!selectedSuggestion}
+                  className='w-full rounded-lg border border-gray-300 bg-white p-2 text-sm disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900'
                   onChange={(e) => {
                     const nextType = e.target.value as AddFieldType;
                     setAddFieldDrafts((prev) => ({
@@ -1005,6 +1123,15 @@ export default function GateManagement() {
       )}
 
       <div className='flex flex-row gap-2'>
+        <button
+          onClick={handleRedeploy}
+          disabled={isLoading || isSaving}
+          className='flex flex-row items-center gap-2 p-2 bg-red-500 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+        >
+          <Zap className={`w-4 h-4 ${isLoading ? 'animate-pulse' : ''}`} />
+          Reset / Redeploy Gate
+        </button>
+
         <button
           onClick={handleRestart}
           disabled={isLoading || isSaving}

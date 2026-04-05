@@ -18,6 +18,7 @@ export type GeneralVariables = Partial<{
   JVM_DD_OPTS: string;
   EXTRA_ARGS: string;
   LOG_TIMESTAMP: boolean | string;
+  ADD_INTO_TRY_HOST: boolean | string;
 }>;
 
 export type ServerVariables = Partial<{

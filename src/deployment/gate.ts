@@ -1,4 +1,11 @@
-import { Namespace, VelocitySecret } from '@/utils/config';
+import {
+  BedrockNodePort,
+  GateProxyImage,
+  isEnableCustomNodePort,
+  JavaNodePort,
+  Namespace,
+  VelocitySecret,
+} from '@/utils/config';
 import type { ServicesDeployments } from '@/utils/type';
 import { isDevelopment } from '@/utils/config';
 
@@ -37,21 +44,38 @@ export const gateDeployment: ServicesDeployments = {
               protocol: 'TCP',
               port: 25565,
               targetPort: 25565,
-              ...(isDevelopment && { nodePort: 30065 }),
+              ...(() => {
+                if (isDevelopment) {
+                  return { nodePort: 35565 };
+                } else if (isEnableCustomNodePort && JavaNodePort) {
+                  return { nodePort: JavaNodePort };
+                }
+              })(),
             },
             {
               name: 'bedrock-port',
               protocol: 'UDP',
               port: 19132,
               targetPort: 19132,
-              ...(isDevelopment && { nodePort: 30065 }),
+              ...(() => {
+                if (isDevelopment) {
+                  return { nodePort: 39132 };
+                }
+                if (isEnableCustomNodePort && BedrockNodePort) {
+                  return { nodePort: BedrockNodePort };
+                }
+              })(),
             },
             {
               name: 'api-port',
               protocol: 'TCP',
               port: 8080,
               targetPort: 8080,
-              ...(isDevelopment && { nodePort: 30080 }),
+              ...(() => {
+                if (isDevelopment) {
+                  return { nodePort: 30080 };
+                }
+              })(),
             },
           ],
           type: isDevelopment ? 'NodePort' : 'LoadBalancer',
@@ -91,9 +115,13 @@ export const gateDeployment: ServicesDeployments = {
               containers: [
                 {
                   name: 'gate-server-container',
-                  image: 'ghcr.io/minekube/gate:latest',
+                  image: GateProxyImage,
                   args: ['--config=/config/config.yml'],
-                  ports: [{ containerPort: 25565 }, { containerPort: 8080 }],
+                  ports: [
+                    { containerPort: 25565, protocol: 'TCP' },
+                    { containerPort: 19132, protocol: 'UDP' },
+                    { containerPort: 8080, protocol: 'TCP' },
+                  ],
                   volumeMounts: [
                     {
                       name: 'gate-server-config-volume',

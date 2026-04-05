@@ -86,20 +86,23 @@ export class Manager {
 
         console.log(`Server Deployment | ${phase}: ${serverName}`);
 
-        if (phase === PhaseEnum.ADDED) {
+        if (phase === PhaseEnum.ADDED || phase === PhaseEnum.MODIFIED) {
           const domain = obj.metadata?.labels?.domain?.trim() || '';
+          const existingServer = this.servers.get(serverName);
           this.servers.set(serverName, {
+            ...existingServer,
             name: serverName,
             address: `${servicesName}.${Namespace}.svc.cluster.local:25565`,
             domain: domain || undefined,
-            playersOnline: 0,
+            playersOnline: existingServer?.playersOnline || 0,
             nameTemplate: servicesName.replace(/service/g, '@PlaceHolder@'),
           });
           this.serviceNameToServerName.set(servicesName, serverName);
         }
 
         if (phase === PhaseEnum.DELETED) {
-          const serverNameFromService = this.serviceNameToServerName.get(servicesName);
+          const serverNameFromService =
+            this.serviceNameToServerName.get(servicesName);
           if (serverNameFromService) {
             this.servers.delete(serverNameFromService);
             this.serviceNameToServerName.delete(servicesName);
@@ -116,60 +119,57 @@ export class Manager {
             'yaml',
           )) as GateConfig;
 
-          if (phase === PhaseEnum.ADDED) {
-            const domain = obj.metadata?.labels?.domain?.trim() || '';
-            if (domain) {
-              const url = new URL(`http://${domain}`);
-              const topDomain = url.hostname.split('.').slice(-2).join('.');
-              const baseHostName = url.hostname
-                .split('.')
-                .slice(0, -2)
-                .join('.');
-              const domainObjName = isWildcardDomain
-                ? `${baseHostName}.${WildCardDomainPrefix}.${topDomain}.`
-                : `${domain}.`;
-              if (
-                !Object.keys(gateConfigMap.config.forcedHosts).includes(
-                  domainObjName,
-                ) ||
-                gateConfigMap.config.forcedHosts[domainObjName]!.indexOf(
-                  servicesName,
-                ) === -1
-              )
+          if (
+            phase === PhaseEnum.ADDED ||
+            phase === PhaseEnum.MODIFIED ||
+            phase === PhaseEnum.DELETED
+          ) {
+            // Ensure clean state before applying current values
+            Object.keys(gateConfigMap.config.forcedHosts).forEach((key) => {
+              gateConfigMap.config.forcedHosts[key] =
+                gateConfigMap.config.forcedHosts[key]!.filter(
+                  (name) => name !== servicesName,
+                );
+              if (gateConfigMap.config.forcedHosts[key]!.length === 0) {
+                delete gateConfigMap.config.forcedHosts[key];
+              }
+            });
+
+            gateConfigMap.config.try = gateConfigMap.config.try.filter(
+              (name) => name !== servicesName,
+            );
+
+            if (phase === PhaseEnum.ADDED || phase === PhaseEnum.MODIFIED) {
+              const domain = obj.metadata?.labels?.domain?.trim() || '';
+              const addIntoTryHost =
+                obj.metadata?.labels?.['add-into-try-host']?.trim() !== 'false';
+
+              if (domain) {
+                const url = new URL(`http://${domain}`);
+                const topDomain = url.hostname.split('.').slice(-2).join('.');
+                const baseHostName = url.hostname
+                  .split('.')
+                  .slice(0, -2)
+                  .join('.');
+                const domainObjName = isWildcardDomain
+                  ? `${baseHostName}.${WildCardDomainPrefix}.${topDomain}.`
+                  : `${domain}.`;
+
                 gateConfigMap.config.forcedHosts[domainObjName] = [
                   ...(gateConfigMap.config.forcedHosts[domainObjName] || []),
-                  //`${servicesName}.${Namespace}.svc.cluster.local:25565`,
                   servicesName,
                 ];
-            } else if (!gateConfigMap.config.try.includes(servicesName)) {
-              gateConfigMap.config.try.push(servicesName);
-            }
+              }
 
-            if (
-              !Object.keys(gateConfigMap.config.servers).includes(servicesName)
-            ) {
+              if (addIntoTryHost) {
+                gateConfigMap.config.try.push(servicesName);
+              }
+
               gateConfigMap.config.servers[servicesName] =
                 `${servicesName}.${Namespace}.svc.cluster.local:25565`;
+            } else if (phase === PhaseEnum.DELETED) {
+              delete gateConfigMap.config.servers[obj.metadata!.name!];
             }
-          }
-          if (phase === PhaseEnum.DELETED) {
-            const domain = metadata.labels?.domain?.trim() || '';
-            if (domain && gateConfigMap.config.forcedHosts[domain]) {
-              gateConfigMap.config.forcedHosts[domain] =
-                gateConfigMap.config.forcedHosts[domain].filter(
-                  (address) =>
-                    address !==
-                    `${servicesName}.${Namespace}.svc.cluster.local:25565`,
-                );
-              if (gateConfigMap.config.forcedHosts[domain].length === 0) {
-                delete gateConfigMap.config.forcedHosts[domain];
-              }
-            } else {
-              gateConfigMap.config.try = gateConfigMap.config.try.filter(
-                (name) => name !== servicesName,
-              );
-            }
-            delete gateConfigMap.config.servers[obj.metadata!.name!];
           }
 
           await patchConfigMap(

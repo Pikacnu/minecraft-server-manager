@@ -4,6 +4,7 @@ import { Namespace } from '@/utils/config';
 import {
   getConfigMapData,
   patchDeployment,
+  patchService,
   patchENVConfigMap,
   updateEnvConfigMap,
 } from '@/utils/k8s';
@@ -228,6 +229,30 @@ export async function PATCH(request: Request): Promise<Response> {
         patchOperations,
       );
     }
+
+    const hasDomainChange = 'domain' in variables;
+    const hasAddTryHostChange = 'ADD_INTO_TRY_HOST' in variables;
+
+    if (hasDomainChange || hasAddTryHostChange) {
+      const labelsToPatch = {
+        ...(hasDomainChange
+          ? { domain: variables.domain === '' ? null : variables.domain }
+          : {}),
+        ...(hasAddTryHostChange
+          ? {
+              'add-into-try-host':
+                variables.ADD_INTO_TRY_HOST === ''
+                  ? null
+                  : String(variables.ADD_INTO_TRY_HOST),
+            }
+          : {}),
+      };
+      await patchService(Namespace, `minecraft-server-service-${serverName}`, {
+        metadata: {
+          labels: labelsToPatch,
+        },
+      });
+    }
   } catch (error: any) {
     console.error('Failed to update server variables: \n', error);
     return Response.json(
@@ -265,6 +290,7 @@ export async function GET(request: Request): Promise<Response> {
         status: 'ok',
         data: {
           ...configMapData,
+          domain: Manager.getServerInfoByName(serverName)?.domain,
           ...(configMapData.MODRINTH_PROJECTS
             ? {
                 MODRINTH_PROJECTS: configMapData.MODRINTH_PROJECTS.replaceAll(

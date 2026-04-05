@@ -38,10 +38,9 @@ export default function ServerSetting({
     Object.fromEntries(
       FIELD_DEFINITIONS.map((field) => [
         field.key,
-        defaultSelectedFields.includes(field.key) &&
-        !(field.key in (defaultValue || {}))
-          ? field.example
-          : '',
+        defaultValue && field.key in defaultValue
+          ? (defaultValue as Record<string, any>)[field.key]
+          : field.defaultValue ?? (defaultSelectedFields.includes(field.key) ? field.example : ''),
       ]),
     ),
   );

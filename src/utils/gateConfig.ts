@@ -669,7 +669,7 @@ export const FIELD_METADATA: Record<string, FieldMetadata> = {
     label: 'Geyser Listen Address',
     description:
       'TCP address where Gate listens for connections from Geyser Standalone',
-    defaultValue: 'localhost:25567',
+    defaultValue: 'localhost:19132',
   },
   'config.bedrock.usernameFormat': {
     type: 'string',

@@ -1020,3 +1020,23 @@ export async function patchDeployment(
     throw err;
   }
 }
+export async function patchService(
+  namespace: string,
+  serviceName: string,
+  patchData: any,
+) {
+  const options = {
+    headers: { 'Content-type': 'application/merge-patch+json' },
+  };
+  try {
+    await coreV1Api.patchNamespacedService({
+      name: serviceName,
+      namespace,
+      body: patchData,
+      ...options,
+    });
+  } catch (err) {
+    console.error('Patch service failed:', err);
+    throw err;
+  }
+}

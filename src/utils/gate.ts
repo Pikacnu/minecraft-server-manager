@@ -23,54 +23,66 @@ let gateClientWarped: {
     ...args: Parameters<(typeof gateClient)[K]>
   ) => ReturnType<(typeof gateClient)[K]>;
 };
-try {
-  gateClient = createClient(GateService, transport);
-} catch (error) {
-  console.error('Failed to initialize Gate client:', error);
-  console.log('Attempting to redeploy Gate service...');
-  await deployService(gateDeployment, { log: true });
-  await new Promise((resolve) => setTimeout(resolve, 20 * 1000)); // wait for 20 seconds
-  gateClient = createClient(GateService, transport);
-  console.log('Gate client initialized after redeployment.');
-} finally {
-  gateClientWarped = Object.fromEntries(
-    Object.entries(gateClient!).map(([methodName, method], index) => {
-      return [
-        methodName,
-        async (...args: any[]) => {
-          try {
-            return await (method as any)(...args);
-          } catch (error: any) {
-            const isTimeout =
-              error.name === 'TimeoutError' ||
-              error.message?.includes('timed out');
-            if (isTimeout) {
-              console.warn(`Method ${methodName} 逾時，正在檢查服務狀態...`);
-              return;
-            }
-            console.error(`Gate client method ${methodName} failed:`, error);
-            const deployment = gateDeployment.Deployments![0]!;
-            const isDeployed = await checkResourceExists(
-              Namespace,
-              k8sApiEndpoint.Deployments,
-              deployment.body.metadata!.name!,
+
+// Just create the client, assuming it might not be reachable immediately.
+gateClient = createClient(GateService, transport);
+
+gateClientWarped = Object.fromEntries(
+  Object.entries(gateClient!).map(([methodName, method], index) => {
+    return [
+      methodName,
+      async (...args: any[]) => {
+        try {
+          return await (method as any)(...args);
+        } catch (error: any) {
+          const errorMessage = error.message?.toLowerCase() || '';
+          const isNetworkError =
+            error.name === 'TimeoutError' ||
+            errorMessage.includes('timed out') ||
+            errorMessage.includes('econnrefused') ||
+            errorMessage.includes('fetch failed') ||
+            errorMessage.includes('network error');
+
+          if (isNetworkError) {
+            console.warn(
+              `[Gate Client] Method ${methodName} network fail: Gate likely not ready yet.`,
             );
-            if (!isDeployed) {
-              console.log(`Attempting to redeploy Gate service...`);
-              await deployService(gateDeployment);
-              console.log(`Retrying Gate client method ${methodName}...`);
-              return await (method as any)(...args);
+
+            // Provide a graceful fallback to prevent the application from crashing
+            if (methodName === 'listServers') {
+              return { servers: [] };
             }
-            console.error(
-              `Gate service is running, but method ${methodName} failed again.`,
-            );
-            throw error;
+            if (methodName === 'serverInfo') {
+              return { server: { status: { players: { online: 0, max: 0 } } } };
+            }
+            // Add other method fallbacks if necessary here
+
+            // Return null or empty object for others
+            return {};
           }
-        },
-      ];
-    }),
-  ) as typeof gateClientWarped;
-}
+
+          console.error(`Gate client method ${methodName} failed:`, error);
+          const deployment = gateDeployment.Deployments![0]!;
+          const isDeployed = await checkResourceExists(
+            Namespace,
+            k8sApiEndpoint.Deployments,
+            deployment.body.metadata!.name!,
+          );
+          if (!isDeployed) {
+            console.log(`Attempting to redeploy Gate service...`);
+            await deployService(gateDeployment);
+            console.log(`Retrying Gate client method ${methodName}...`);
+            return await (method as any)(...args);
+          }
+          console.error(
+            `Gate service is running, but method ${methodName} failed again.`,
+          );
+          throw error;
+        }
+      },
+    ];
+  }),
+) as typeof gateClientWarped;
 
 export { gateClientWarped as gateClient };
 export type GateClient = typeof gateClientWarped;
