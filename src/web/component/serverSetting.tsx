@@ -40,7 +40,8 @@ export default function ServerSetting({
         field.key,
         defaultValue && field.key in defaultValue
           ? (defaultValue as Record<string, any>)[field.key]
-          : field.defaultValue ?? (defaultSelectedFields.includes(field.key) ? field.example : ''),
+          : (field.defaultValue ??
+            (defaultSelectedFields.includes(field.key) ? field.example : '')),
       ]),
     ),
   );

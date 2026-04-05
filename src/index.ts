@@ -59,7 +59,9 @@ try {
   // Initialize Gate Client
   deployService(gateDeployment, { log: true })
     .then(() => console.log('Gate client initialization process finished.'))
-    .catch((error) => console.error('Failed to initialize gate client:', error));
+    .catch((error) =>
+      console.error('Failed to initialize gate client:', error),
+    );
   console.log('Gate client initialization started in background.');
 
   // Start the web server

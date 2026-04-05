@@ -109,7 +109,7 @@ const DEFAULT_OBJECT_TEMPLATES: Record<string, JsonObject> = {
     logPingRequests: false,
     announceForge: false,
   },
-  'connect': {
+  connect: {
     enabled: false,
     allowOfflineModePlayers: false,
   },
