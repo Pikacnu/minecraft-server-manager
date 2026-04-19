@@ -10,6 +10,7 @@ export default function Nav() {
   const sectionDisplayIcon: Record<string, ReactElement> = {
     home: <Home></Home>,
     servers: <Server></Server>,
+    serverData: <SquareChartGantt></SquareChartGantt>,
     serverManagement: <SquareChartGantt></SquareChartGantt>,
     settings: <Settings></Settings>,
   };

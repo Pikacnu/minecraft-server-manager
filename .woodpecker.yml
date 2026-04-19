@@ -1,0 +1,68 @@
+# Woodpecker CI pipeline — build image and deploy to Kubernetes
+# Secrets to set in Woodpecker repository settings:
+# - DOCKER_REGISTRY (e.g. docker.io)
+# - DOCKER_USERNAME
+# - DOCKER_PASSWORD
+# - IMAGE_NAME (e.g. username/minecraft-server-manager)
+
+steps:
+  - name: trivy-scan
+    image: woodpeckerci/plugin-trivy
+    settings:
+      dir: .
+      severity: HIGH,CRITICAL
+      exit-code: 1
+      skip-dirs: vendor,node_modules
+    when:
+      - event: [ push, pull_request ]
+
+  - name: build-and-push
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: ${DOCKER_REGISTRY}/${IMAGE_NAME}
+      tags: ${WOODPECKER_COMMIT}
+      platforms: linux/arm64
+      dockerfile: Dockerfile
+      build_args:
+        NODE_ENV: production
+      username:
+        from_secret: DOCKER_USERNAME
+      password:
+        from_secret: DOCKER_PASSWORD
+    when:
+      - event: push
+        branch: main
+
+  - name: discord-success
+    image: appleboy/drone-discord
+    settings:
+      webhook_id:
+        from_secret: DISCORD_WEBHOOK_ID
+      webhook_token:
+        from_secret: DISCORD_WEBHOOK_TOKEN
+      username: minecraft-server-manager CI
+      message: |
+        ✅ Build succeeded
+        Repo: {{repo.name}}
+        Branch: {{build.branch}}
+        Commit: {{truncate build.commit 8}}
+        Link: {{build.link}}
+    when:
+      - status: [ success ]
+
+  - name: discord-failure
+    image: appleboy/drone-discord
+    settings:
+      webhook_id:
+        from_secret: DISCORD_WEBHOOK_ID
+      webhook_token:
+        from_secret: DISCORD_WEBHOOK_TOKEN
+      username: minecraft-server-manager CI
+      message: |
+        ❌ Build failed
+        Repo: {{repo.name}}
+        Branch: {{build.branch}}
+        Commit: {{truncate build.commit 8}}
+        Link: {{build.link}}
+    when:
+      - status: [ failure ]

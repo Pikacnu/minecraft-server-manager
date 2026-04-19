@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react';
 export enum PageSectionEnum {
   Home = 'home',
   Servers = 'servers',
+  ServerData = 'serverData',
   Settings = 'settings',
   ServerManagement = 'serverManagement',
 }
@@ -10,6 +11,7 @@ export enum PageSectionEnum {
 export const PageSectionList = [
   PageSectionEnum.Home,
   PageSectionEnum.Servers,
+  PageSectionEnum.ServerData,
   PageSectionEnum.ServerManagement,
   PageSectionEnum.Settings,
 ];

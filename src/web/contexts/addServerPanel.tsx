@@ -9,9 +9,13 @@ import {
 const openServerPanelContext = createContext<{
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
+  defaultSetting: Record<string, any>;
+  setDefaultSetting: Dispatch<SetStateAction<Record<string, any>>>;
 }>({
   isOpen: false,
   setIsOpen: () => {},
+  defaultSetting: {},
+  setDefaultSetting: () => {},
 });
 
 export const OpenServerPanelProvider = ({
@@ -20,8 +24,11 @@ export const OpenServerPanelProvider = ({
   children: React.ReactNode;
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [defaultSetting, setDefaultSetting] = useState<Record<string, any>>({});
   return (
-    <openServerPanelContext.Provider value={{ isOpen, setIsOpen }}>
+    <openServerPanelContext.Provider
+      value={{ isOpen, setIsOpen, defaultSetting, setDefaultSetting }}
+    >
       {children}
     </openServerPanelContext.Provider>
   );

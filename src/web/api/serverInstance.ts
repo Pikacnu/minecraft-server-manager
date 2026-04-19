@@ -1,5 +1,6 @@
 import { minecraftServerDeployment } from '@/deployment/minecraft-server';
 import { Manager } from '@/manager';
+import { FileControllerManager, FileController } from '@/manager/file-manager';
 import { Namespace } from '@/utils/config';
 import {
   getConfigMapData,
@@ -39,22 +40,58 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
   try {
-    Manager.createServer({
+    const variablesForCreate = Object.fromEntries(
+      Object.entries(variable).filter(
+        ([key, value]) =>
+          value !== undefined &&
+          value !== null &&
+          value !== '' &&
+          !AutoStopKeys.includes(key as (typeof AutoStopKeys)[number]),
+      ),
+    );
+
+    const serverK8sName = variable
+      .SERVER_NAME!.replaceAll(' ', '-')
+      .toLowerCase();
+
+    await Manager.createServer({
       memoryLimit: variable.memoryLimit!,
       version: variable.version!,
       type: variable.type!,
       domain: variable.domain,
-      name: variable.SERVER_NAME!.replaceAll(' ', '-').toLowerCase(),
-      Variables: Object.fromEntries(
-        Object.entries(variable).filter(
-          ([key, value]) =>
-            value !== undefined &&
-            value !== null &&
-            value !== '' &&
-            !AutoStopKeys.includes(key as (typeof AutoStopKeys)[number]),
-        ),
-      ),
+      name: serverK8sName,
+      Variables: variablesForCreate as any,
     });
+
+    // If the request provided a source folder id (serverSettingId), write a server.conf there
+    try {
+      const srcFolder = (variable as any).serverSettingId as string | undefined;
+      if (srcFolder) {
+        let controller;
+        if (FileControllerManager.hasController(srcFolder)) {
+          controller = FileControllerManager.getController(srcFolder);
+        } else {
+          try {
+            const newController = new FileController(srcFolder, {});
+            FileControllerManager.registerController(srcFolder, newController);
+            controller = newController;
+          } catch (e) {
+            if (FileControllerManager.hasController(srcFolder)) {
+              controller = FileControllerManager.getController(srcFolder);
+            }
+          }
+        }
+        if (controller) {
+          await controller.writeFile(
+            'server.conf',
+            JSON.stringify(variablesForCreate, null, 2),
+          );
+          await controller.rescan();
+        }
+      }
+    } catch (e) {
+      console.error('Failed to persist server.conf to source folder:', e);
+    }
   } catch (error) {
     console.error('Failed to deploy server:', error);
     return Response.json(
@@ -252,6 +289,41 @@ export async function PATCH(request: Request): Promise<Response> {
           labels: labelsToPatch,
         },
       });
+    }
+    // Persist updated variables to source folder if client provided serverSettingId
+    try {
+      const srcFolder = (variables as any).serverSettingId as
+        | string
+        | undefined;
+      if (srcFolder) {
+        let controller;
+        if (FileControllerManager.hasController(srcFolder)) {
+          controller = FileControllerManager.getController(srcFolder);
+        } else {
+          try {
+            const newController = new FileController(srcFolder, {});
+            FileControllerManager.registerController(srcFolder, newController);
+            controller = newController;
+          } catch (e) {
+            if (FileControllerManager.hasController(srcFolder)) {
+              controller = FileControllerManager.getController(srcFolder);
+            }
+          }
+        }
+        if (controller) {
+          try {
+            await controller.writeFile(
+              'server.conf',
+              JSON.stringify(updatedVariables, null, 2),
+            );
+            await controller.rescan();
+          } catch (e) {
+            console.error('Failed to persist server.conf on update:', e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to persist server.conf metadata on update:', e);
     }
   } catch (error: any) {
     console.error('Failed to update server variables: \n', error);

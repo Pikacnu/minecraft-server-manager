@@ -1,7 +1,6 @@
 import { useServers } from '../contexts/servers';
 import { CirclePlus, SquarePen, RotateCcw, Power, Trash } from 'lucide-react';
 import Rcon from './../component/rcon';
-import AddServerPopUp from '../component/addServerPopUp';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
 import { useNotification } from '../contexts/notification';
@@ -12,15 +11,12 @@ export default function Server() {
   const { serverInfo, setCurrentSelectedServerId, setServerInfo } =
     useServers();
   const { setCurrentSection } = usePage();
-  const { isOpen: isOpenAddServerPopUp, setIsOpen: setIsOpenAddServerPopUp } =
-    useOpenServerPanel();
+  const { setIsOpen: setIsOpenAddServerPopUp } = useOpenServerPanel();
   const { addNotification } = useNotification();
   const { showConfirmDialog } = useConfirmDialog();
 
   return (
     <div className='flex h-full w-full flex-col gap-4 overflow-hidden p-4'>
-      {isOpenAddServerPopUp && <AddServerPopUp />}
-
       <div className='flex items-center justify-end'>
         <button
           className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 sm:w-auto'

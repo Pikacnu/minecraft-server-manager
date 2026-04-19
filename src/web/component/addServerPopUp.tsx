@@ -3,7 +3,7 @@ import type {
   MinecraftServerDeploymentsGeneratorArguments,
 } from '@/utils/type';
 import ServerSetting from './serverSetting';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { useNotification } from '../contexts/notification';
 import { NotificationType } from '../utils/enums';
@@ -12,7 +12,18 @@ export default function AddServerPopUp() {
   const [serverSettingSaver, setServerSettingSaver] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> & Variables
   >({});
-  const { isOpen, setIsOpen } = useOpenServerPanel();
+  const { isOpen, setIsOpen, defaultSetting, setDefaultSetting } =
+    useOpenServerPanel();
+
+  // Prefill server settings when defaultSetting is provided and modal opens
+  useEffect(() => {
+    if (isOpen && defaultSetting && Object.keys(defaultSetting).length > 0) {
+      setServerSettingSaver((prev) => ({
+        ...prev,
+        ...(defaultSetting as any),
+      }));
+    }
+  }, [isOpen, defaultSetting]);
   const { addNotification } = useNotification();
   const handleAddServer = async () => {
     try {
@@ -29,6 +40,7 @@ export default function AddServerPopUp() {
           NotificationType.Success,
         );
         setIsOpen(false);
+        setDefaultSetting({});
       } else {
         const data = await response.json();
         addNotification(
@@ -46,6 +58,7 @@ export default function AddServerPopUp() {
       onClick={() => {
         if (!isOpen) return;
         setIsOpen(false);
+        setDefaultSetting({});
       }}
     >
       <div
