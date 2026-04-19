@@ -17,18 +17,19 @@ steps:
       - event: [ push, pull_request ]
 
   - name: build-and-push
-    image: woodpeckerci/plugin-docker-buildx
+    image: woodpeckerci/plugin-kaniko
     settings:
       repo: ${DOCKER_REGISTRY}/${IMAGE_NAME}
       tags: ${WOODPECKER_COMMIT}
-      platforms: linux/arm64
       dockerfile: Dockerfile
-      build_args:
+      context: .
+      build-args:
         NODE_ENV: production
       username:
         from_secret: DOCKER_USERNAME
       password:
         from_secret: DOCKER_PASSWORD
+      cache: true
     when:
       - event: push
         branch: main
