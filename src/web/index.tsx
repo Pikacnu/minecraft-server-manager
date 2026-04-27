@@ -1,6 +1,7 @@
 import { file, serve } from 'bun';
 import index from '#/entry/index.html';
 import serverInfo from './api/serverInfo';
+import instanceScanner from './api/instanceScanner';
 import serverManage from './api/serverManage';
 import { MessageType, type SendMessage } from './websocket/type';
 import { rconHandler } from './websocket/rcon';
@@ -29,6 +30,7 @@ export const webServer = async (args?: WebServerArguments) => {
       '/api/file-system': fileSystem,
       '/api/gate-manage': gateManage,
       '/api/settings': settings,
+      '/api/instance-scanner': instanceScanner,
     },
     fetch: async (request, server) => {
       const url = new URL(request.url);
