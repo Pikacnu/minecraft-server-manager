@@ -347,6 +347,7 @@ export class FileControllerManager {
     for await (const dir of directorys) {
       const isDir = (await lstat(join(basePath, dir))).isDirectory();
       if (!isDir) continue;
+      console.log(`Initializing FileController for ${dir}...`);
       if (!(await exists(join(basePath, dir)))) {
         mkdir(join(basePath, dir), { recursive: true });
       }
