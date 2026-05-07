@@ -12,7 +12,6 @@ import type { ServicesDeployments } from './type';
 import { Namespace } from './config';
 import { spawn } from 'child_process';
 import * as yaml from 'js-yaml';
-import { fetch } from 'bun';
 
 const kubeConfig = new KubeConfig();
 
