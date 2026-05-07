@@ -609,25 +609,12 @@ export class Manager {
 
   public static async getFollowedServerLogs(
     serverName: string,
-    onData: (data: string) => void,
-    onError: (error: any) => void,
-    onClose: () => void,
-  ): Promise<void> {
+  ): Promise<PassThrough> {
     const server = Manager.getServerInfoByName(serverName);
     if (!server) {
       throw new Error(`Server ${serverName} not found.`);
     }
     const logStream = new PassThrough();
-    logStream.on('data', (chunk) => {
-      onData(chunk.toString());
-    });
-    logStream.on('error', (error) => {
-      onError(error);
-    });
-    logStream.on('end', () => {
-      console.log(`Log stream for server ${serverName} ended.`);
-      onClose();
-    });
     k8sLogger.log(
       Namespace,
       server.nameTemplate.replace('@PlaceHolder@', 'deployment'),
@@ -638,6 +625,7 @@ export class Manager {
         pretty: true,
       },
     );
+    return logStream;
   }
 
   public static getServerStatus(
