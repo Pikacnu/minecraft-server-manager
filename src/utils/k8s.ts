@@ -2,6 +2,7 @@ import {
   AppsV1Api,
   CoreV1Api,
   KubeConfig,
+  Log,
   V1ConfigMap,
   V1Deployment,
   V1Pod,
@@ -98,6 +99,7 @@ if (process.env.KUBERNETES_SERVICE_HOST) {
 
 export const coreV1Api = kubeConfig.makeApiClient(CoreV1Api);
 export const appsV1Api = kubeConfig.makeApiClient(AppsV1Api);
+export const k8sLogger = new Log(kubeConfig);
 export default kubeConfig;
 
 export enum k8sApiEndpoint {
