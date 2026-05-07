@@ -41,6 +41,8 @@ export type ServerInfo = {
   domain?: string;
   playersOnline: number;
   nameTemplate: string;
+  deploymentUpdateResourceVersion: number;
+  servicesUpdateResourceVersion: number;
 };
 
 export class Manager {
@@ -83,6 +85,19 @@ export class Manager {
         const metadata = obj.metadata!;
         const labels = metadata.labels || {};
         const serverName = labels?.name! || servicesName;
+        const currentResourceVersion = obj.metadata!.resourceVersion!;
+        const existingServer = this.servers.get(serverName);
+        if (existingServer) {
+          if (
+            existingServer.servicesUpdateResourceVersion <=
+            parseInt(currentResourceVersion)
+          ) {
+            return;
+          }
+          existingServer.servicesUpdateResourceVersion = parseInt(
+            currentResourceVersion,
+          );
+        }
 
         console.log(`Server Deployment | ${phase}: ${serverName}`);
 
@@ -96,6 +111,8 @@ export class Manager {
             domain: domain || undefined,
             playersOnline: existingServer?.playersOnline || 0,
             nameTemplate: servicesName.replace(/service/g, '@PlaceHolder@'),
+            deploymentUpdateResourceVersion: -Infinity,
+            servicesUpdateResourceVersion: -Infinity,
           });
           this.serviceNameToServerName.set(servicesName, serverName);
         }
@@ -206,6 +223,21 @@ export class Manager {
         const replicas = obj.spec?.replicas || 0;
         const currentReplicas = obj.status?.replicas || 0;
         const onlineReplicas = obj.status?.availableReplicas || 0;
+
+        const currentResourceVersion = obj.metadata!.resourceVersion!;
+        const existingServer = this.servers.get(serverName);
+        if (existingServer) {
+          if (
+            existingServer.deploymentUpdateResourceVersion <=
+            parseInt(currentResourceVersion)
+          ) {
+            return;
+          }
+          existingServer.deploymentUpdateResourceVersion = parseInt(
+            currentResourceVersion,
+          );
+        }
+
         switch (true) {
           case replicas === 0: {
             this.serverStatus.set(serverName, ServerStatusEnum.TERMINATING);
