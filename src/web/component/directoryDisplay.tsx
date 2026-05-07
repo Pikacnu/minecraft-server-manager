@@ -1,4 +1,8 @@
-import { DirectoryType, type DirectoryStructure } from '@/utils/type';
+import {
+  DirectoryType,
+  type DirectoryStructure,
+  type DirectoryType as DirectoryTypeValue,
+} from '../utils/directoryType';
 import {
   Folder,
   File,
@@ -43,7 +47,7 @@ export default function DirectoryDisplay({
   handleCreate: (path: string, type: DirectoryType) => void;
   handleDelete: (
     path: string,
-    type: DirectoryType,
+    type: DirectoryTypeValue,
     recursive: boolean,
   ) => Promise<boolean>;
   handleRename: (oldPath: string, newPath: string) => Promise<void>;
@@ -62,9 +66,8 @@ export default function DirectoryDisplay({
   const [creatingState, setCreatingState] = useState<FileCreatingState>(
     FileCreatingState.None,
   );
-  const [currentCreatingType, setCurrentCreatingType] = useState<DirectoryType>(
-    DirectoryType.File,
-  );
+  const [currentCreatingType, setCurrentCreatingType] =
+    useState<DirectoryTypeValue>(DirectoryType.File);
   const [isRenaming, setIsRenaming] = useState<string | null>(null);
 
   const openFilePath = useRef<string>('');
@@ -147,7 +150,7 @@ export default function DirectoryDisplay({
   };
 
   return (
-    <div className='p-4 bg-gray-100 dark:bg-gray-800 rounded-lg h-full'>
+    <div className='flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-gray-100 p-4 dark:bg-gray-800'>
       {isOpenFile && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
           <div className='bg-white dark:bg-gray-900 rounded-lg w-3/4 h-3/4 p-4 flex flex-col'>
@@ -372,7 +375,7 @@ export default function DirectoryDisplay({
           </div>
         </div>
       </div>
-      <ul className=' overflow-y-auto h-full'>
+      <ul className='min-h-0 flex-1 overflow-y-auto'>
         <li>
           <span
             className='mb-2 cursor-pointer hover:underline flex flex-row items-center gap-2 select-none'

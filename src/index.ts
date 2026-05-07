@@ -1,6 +1,7 @@
 import { deployService } from './utils/k8s';
 import { webServer } from '@/web/index';
 import { Manager } from './manager';
+import { ResourceMonitor } from './manager/resource-monitor';
 import { SystemRequiredDeployments } from './deployment/system';
 import { defaultFilter, FileControllerManager } from './manager/file-manager';
 import { DomainManager } from './manager/domain-manager';
@@ -27,6 +28,9 @@ try {
 
   // Initialize the Server Manager
   Manager.getInstance();
+
+  // Start collecting pod resource metrics in the background.
+  ResourceMonitor.getInstance();
 
   // Initialize the File Controller Manager
   await FileControllerManager.initialize('', {

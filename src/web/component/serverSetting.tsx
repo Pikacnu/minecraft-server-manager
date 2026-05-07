@@ -82,7 +82,7 @@ export default function ServerSetting({
   }, [fieldValues, setSetting]);
 
   const MainComponent = (
-    <div className='flex h-full w-full grow flex-col overflow-y-auto rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60 md:p-4'>
+    <div className='w-full overflow-y-auto rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60 md:p-4 h-auto'>
       {FIELDS_BY_CATEGORY.map(([category, fields]) => (
         <div
           key={category}
@@ -193,7 +193,7 @@ export default function ServerSetting({
   );
 
   return (
-    <div className='flex w-full grow flex-col rounded-xl border border-gray-300 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+    <div className='flex w-full flex-col rounded-xl border border-gray-300 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-800 h-full'>
       {!isToggleAble ? (
         MainComponent
       ) : !isOpen ? (

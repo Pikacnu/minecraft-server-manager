@@ -1,6 +1,5 @@
 import { useServers } from '../contexts/servers';
 import { CirclePlus, SquarePen, RotateCcw, Power, Trash } from 'lucide-react';
-import Rcon from './../component/rcon';
 import { useOpenServerPanel } from '../contexts/addServerPanel';
 import { PageSectionEnum, usePage } from '../contexts/page';
 import { useNotification } from '../contexts/notification';
@@ -50,17 +49,16 @@ export default function Server() {
                     </div>
                   </div>
 
-                  <div className='flex gap-4 text-sm'>
-                    <div>
-                      Status:{' '}
-                      <span className='font-medium'>{server.status}</span>
-                    </div>
-                    <div>
-                      Players Online:{' '}
-                      <span className='font-medium'>
-                        {server.playersOnline}
-                      </span>
-                    </div>
+                  <div className='flex flex-wrap gap-2 text-xs'>
+                    <span className='rounded-full bg-gray-200 px-3 py-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
+                      Status: {server.status}
+                    </span>
+                    <span className='rounded-full bg-gray-200 px-3 py-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
+                      Players: {server.playersOnline}
+                    </span>
+                    <span className='rounded-full bg-gray-200 px-3 py-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
+                      ID: {server.id}
+                    </span>
                   </div>
                 </div>
 
@@ -72,7 +70,7 @@ export default function Server() {
                       setCurrentSection(PageSectionEnum.ServerManagement);
                     }}
                   >
-                    <SquarePen className='h-4 w-4' /> Edit
+                    <SquarePen className='h-4 w-4' /> Manage
                   </button>
 
                   <button
@@ -211,10 +209,6 @@ export default function Server() {
                   >
                     <Trash className='h-4 w-4' /> Delete
                   </button>
-                </div>
-
-                <div className='mt-3'>
-                  <Rcon serverName={server.name} />
                 </div>
               </article>
             ))}

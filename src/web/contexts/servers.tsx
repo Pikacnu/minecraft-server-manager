@@ -3,7 +3,6 @@ import {
   useContext,
   useState,
   useEffect,
-  useRef,
   type SetStateAction,
   type Dispatch,
 } from 'react';
@@ -21,54 +20,77 @@ export type ServerInfo = {
 const ServerContext = createContext<{
   serverInfo: ServerInfo[];
   setServerInfo: Dispatch<SetStateAction<ServerInfo[]>>;
-  currentSelectedServerId: string | undefined;
+  currentSelectedServerId: string;
   setCurrentSelectedServerId: (id: string) => void;
 }>({
   serverInfo: [],
   setServerInfo: () => {},
-  currentSelectedServerId: undefined,
+  currentSelectedServerId: '',
   setCurrentSelectedServerId: () => {},
 });
+
+const SELECTED_SERVER_STORAGE_KEY = 'minecraft:selectedServerId';
 
 export const ServerProvider = ({ children }: { children: React.ReactNode }) => {
   const [serverInfo, setServerInfo] = useState<ServerInfo[]>([]);
   const [currentSelectedServerId, setCurrentSelectedServerId] =
     useState<string>('');
   const { message, sendMessage } = useWebSocket();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // useEffect(() => {
-  //   const fetchServerInfo = async () => {
-  //     // try {
-  //     //   const response = await fetch('/api/server-info');
-  //     //   const data = await response.json();
-  //     //   setServerInfo(data.data);
-  //     // } catch (error) {
-  //     //   console.error('Failed to fetch server info:', error);
-  //     // }
-  //   };
-  //   const timeout = setInterval(fetchServerInfo, 10 * 1_000);
-  //   fetchServerInfo();
-  //   return () => clearInterval(timeout);
-  // }, []);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SELECTED_SERVER_STORAGE_KEY);
+      if (saved) {
+        setCurrentSelectedServerId(saved);
+      }
+    } catch (error) {
+      console.error('Failed to read selected server from storage:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (currentSelectedServerId) {
+        window.localStorage.setItem(
+          SELECTED_SERVER_STORAGE_KEY,
+          currentSelectedServerId,
+        );
+      } else {
+        window.localStorage.removeItem(SELECTED_SERVER_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to persist selected server:', error);
+    }
+  }, [currentSelectedServerId]);
 
   useEffect(() => {
     if (message && message.type === MessageType.SERVERINFO) {
       const updatedServers = (message as ReceiveMessage<MessageType.SERVERINFO>)
         .payload.servers;
       setServerInfo(updatedServers);
+
+      if (
+        currentSelectedServerId &&
+        !updatedServers.some((server) => server.id === currentSelectedServerId)
+      ) {
+        setCurrentSelectedServerId('');
+      }
     }
-    timeoutRef.current = setTimeout(() => {
-      sendMessage({ type: MessageType.SERVERINFO, payload: {} });
-    }, 5 * 1_000);
-  }, [message]);
+  }, [message, currentSelectedServerId]);
 
   useEffect(() => {
-    setTimeout(() => {
+    const requestServerInfo = () => {
       sendMessage({ type: MessageType.SERVERINFO, payload: {} });
-      console.log('Requested server info via WebSocket');
-    }, 500);
-  }, []);
+    };
+
+    const startupTimeout = setTimeout(requestServerInfo, 500);
+    const interval = setInterval(requestServerInfo, 5 * 1_000);
+
+    return () => {
+      clearTimeout(startupTimeout);
+      clearInterval(interval);
+    };
+  }, [sendMessage]);
 
   return (
     <ServerContext.Provider

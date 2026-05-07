@@ -16,13 +16,12 @@ export default function Nav() {
   };
 
   return (
-    <div className='flex flex-row w-full h-16 bg-white dark:bg-gray-800 shadow-md top-0 left-0 gap-2 md:gap-4 lg:gap-8'>
-      {deviceType !== DeviceType.Mobile && (
-        <div className='flex items-center justify-center px-4 text-base md:text-lg lg:text-xl font-bold gap-1 whitespace-nowrap'>
-          <Dock></Dock>
-          <span className='hidden sm:inline'>Minecraft Server Manager</span>
-        </div>
-      )}
+    <div className='flex flex-row w-full h-16 bg-white dark:bg-gray-800 shadow-md top-0 left-0 gap-2 md:gap-4 lg:gap-8 max-xl:justify-center'>
+      <div className='flex items-center justify-center px-4 text-base md:text-lg lg:text-xl font-bold gap-1 whitespace-nowrap max-xl:hidden'>
+        <Dock></Dock>
+        <span className='hidden sm:inline'>Minecraft Server Manager</span>
+      </div>
+
       {PageSectionList.map((section) => (
         <div
           key={section}

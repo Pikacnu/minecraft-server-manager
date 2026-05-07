@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, useContext, createContext } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  createContext,
+  useCallback,
+} from 'react';
 import {
   MessageType,
   type ReceiveMessage,
@@ -76,13 +83,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  const sendMessage = (message: SendMessage) => {
+  const sendMessage = useCallback((message: SendMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
       console.error('WebSocket is not open. Unable to send message.');
     }
-  };
+  }, []);
 
   return (
     <WebSocketContext.Provider value={{ websocket, sendMessage, message }}>

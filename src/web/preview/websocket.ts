@@ -57,6 +57,20 @@ export const wsHandlers = [
           }),
         );
       }
+
+      if (message.type === MessageType.SERVERLOG) {
+        if (message.payload.action === 'subscribe') {
+          client.send(
+            JSON.stringify({
+              type: MessageType.SERVERLOG,
+              payload: {
+                status: 'ok',
+                serverName: message.payload.serverName,
+              },
+            }),
+          );
+        }
+      }
     });
 
     const interval = setInterval(() => {
@@ -80,6 +94,17 @@ export const wsHandlers = [
                 playersOnline: 0,
               },
             ],
+          },
+        }),
+      );
+
+      client.send(
+        JSON.stringify({
+          type: MessageType.SERVERLOG,
+          payload: {
+            status: 'ok',
+            serverName: 'my-server',
+            chunk: `[${new Date().toISOString()}] [Server thread/INFO]: Mock log line`,
           },
         }),
       );

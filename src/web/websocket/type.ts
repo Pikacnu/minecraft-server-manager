@@ -2,6 +2,7 @@ export enum MessageType {
   RCON = 'rcon',
   SYSTEM = 'system',
   SERVERINFO = 'serverinfo',
+  SERVERLOG = 'serverlog',
   HEARTBEAT = 'heartbeat',
 }
 
@@ -14,6 +15,10 @@ interface SendMessagePayload {
   [MessageType.RCON]: { command: string; serverName: string };
   [MessageType.SYSTEM]: { command: string };
   [MessageType.SERVERINFO]: {};
+  [MessageType.SERVERLOG]: {
+    serverName: string;
+    action: 'subscribe' | 'unsubscribe';
+  };
   [MessageType.HEARTBEAT]: { timestamp: number };
 }
 
@@ -34,6 +39,11 @@ interface ReceiveMessagePayload {
   };
   [MessageType.SERVERINFO]: {
     servers: ServerInfo[];
+  };
+  [MessageType.SERVERLOG]: {
+    status: 'ok' | 'error';
+    serverName: string;
+    chunk?: string;
   };
   [MessageType.HEARTBEAT]: {
     timestamp: number;
