@@ -92,7 +92,7 @@ export class Manager {
         const existingServer = this.servers.get(serverName);
         if (existingServer) {
           if (
-            existingServer.servicesUpdateResourceVersion <=
+            existingServer.servicesUpdateResourceVersion >=
             parseInt(currentResourceVersion)
           ) {
             return;
