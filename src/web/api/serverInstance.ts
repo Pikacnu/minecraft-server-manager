@@ -206,11 +206,15 @@ export async function PATCH(request: Request): Promise<Response> {
       delete (updatedVariables as Record<string, unknown>)[key];
     }
 
-    await patchENVConfigMap(
-      Namespace,
-      `minecraft-server-env-configmap-${serverName}`,
-      updatedVariables,
-    );
+    try {
+      await patchENVConfigMap(
+        Namespace,
+        `minecraft-server-env-configmap-${serverName}`,
+        updatedVariables,
+      );
+    } catch (e) {
+      throw new Error(`Failed to patch ENV ConfigMap: ${(e as Error).message}`);
+    }
 
     // Always trigger rollout when config changes by adding annotation
     const patchOperations: Array<{
@@ -260,11 +264,15 @@ export async function PATCH(request: Request): Promise<Response> {
     console.log('Patch operations for deployment:', patchOperations);
 
     if (patchOperations.length > 1) {
-      await patchDeployment(
-        Namespace,
-        `minecraft-server-deployment-${serverName}`,
-        patchOperations,
-      );
+      try {
+        await patchDeployment(
+          Namespace,
+          `minecraft-server-deployment-${serverName}`,
+          patchOperations,
+        );
+      } catch (e) {
+        throw new Error(`Failed to patch Deployment: ${(e as Error).message}`);
+      }
     }
 
     const hasDomainChange = 'domain' in variables;
@@ -284,11 +292,19 @@ export async function PATCH(request: Request): Promise<Response> {
             }
           : {}),
       };
-      await patchService(Namespace, `minecraft-server-service-${serverName}`, {
-        metadata: {
-          labels: labelsToPatch,
-        },
-      });
+      try {
+        await patchService(
+          Namespace,
+          `minecraft-server-service-${serverName}`,
+          {
+            metadata: {
+              labels: labelsToPatch,
+            },
+          },
+        );
+      } catch (e) {
+        throw new Error(`Failed to patch Service: ${(e as Error).message}`);
+      }
     }
     // Persist updated variables to source folder if client provided serverSettingId
     try {
