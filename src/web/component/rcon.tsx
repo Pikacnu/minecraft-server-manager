@@ -87,7 +87,7 @@ export default function Rcon({
           <div className='grid min-h-0 grow grid-rows-[minmax(0,1fr)_auto] gap-2'>
             <pre
               ref={terminalRef}
-              className='min-h-0 w-full overflow-y-auto rounded-lg bg-black p-2 font-mono text-sm text-white whitespace-pre-wrap wrap-break-word'
+              className='min-h-0 w-full overflow-y-auto rounded-lg bg-black p-2 font-mono text-sm text-white whitespace-pre-wrap break-words'
             >
               {output || 'No RCON output yet.'}
             </pre>

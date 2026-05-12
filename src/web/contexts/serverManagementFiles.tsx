@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useOptimistic,
   useState,
   useTransition,
@@ -61,6 +60,7 @@ export function ServerManagementFilesProvider({
   const [currentFileStructure, setCurrentFileStructure] =
     useState<DirectoryStructure>(emptyStructure);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const encodedServerId = encodeURIComponent(serverId);
 
   const [optimisticFileStructure, addOptimisticFileStructure] = useOptimistic(
     currentFileStructure,
@@ -131,7 +131,7 @@ export function ServerManagementFilesProvider({
     }
 
     const response = await fetch(
-      `/api/file-system?name=${serverId}&type=structure`,
+      `/api/file-system?name=${encodedServerId}&type=structure`,
     );
     if (response.ok) {
       const data = await response.json();
@@ -154,7 +154,7 @@ export function ServerManagementFilesProvider({
 
     const submitFileChange = async () => {
       await fetch(
-        `/api/file-system?name=${serverId}&type=file&path=${encodeURIComponent(path)}`,
+        `/api/file-system?name=${encodedServerId}&type=file&path=${encodeURIComponent(path)}`,
         { method: 'PUT', body: content },
       );
       void fetchFileStructure();
@@ -167,7 +167,7 @@ export function ServerManagementFilesProvider({
     if (!path || !serverId) return '';
 
     const fileResponse = await fetch(
-      `/api/file-system?name=${serverId}&type=file&path=${encodeURIComponent(path)}`,
+      `/api/file-system?name=${encodedServerId}&type=file&path=${encodeURIComponent(path)}`,
     );
     if (fileResponse.ok) {
       const data = await fileResponse.json();
@@ -237,7 +237,7 @@ export function ServerManagementFilesProvider({
     startTransition(async () => {
       addOptimisticFileStructure({ type: 'delete', payload: { path } });
       try {
-        const response = await fetch(`/api/file-system?name=${serverId}`, {
+        const response = await fetch(`/api/file-system?name=${encodedServerId}`, {
           method: 'DELETE',
           body: JSON.stringify({
             name: serverId,
@@ -298,7 +298,7 @@ export function ServerManagementFilesProvider({
         payload: { path, type: DirectoryType.File },
       });
       await fetch(
-        `/api/file-system?name=${serverId}&type=file&path=${encodeURIComponent(path)}`,
+        `/api/file-system?name=${encodedServerId}&type=file&path=${encodeURIComponent(path)}`,
         { method: 'PUT', body: file },
       );
       void fetchFileStructure();
@@ -309,7 +309,7 @@ export function ServerManagementFilesProvider({
     if (!path || !serverId) return;
 
     const fileResponse = await fetch(
-      `/api/file-system?name=${serverId}&type=file&path=${encodeURIComponent(path)}`,
+      `/api/file-system?name=${encodedServerId}&type=file&path=${encodeURIComponent(path)}`,
     );
     if (fileResponse.ok) {
       const data = await fileResponse.json();
@@ -377,26 +377,23 @@ export function ServerManagementFilesProvider({
     );
   };
 
-  const value = useMemo<ServerManagementFilesContextType>(
-    () => ({
-      fileStructure: optimisticFileStructure,
-      selectedFiles,
-      setSelectedFiles,
-      fetchFileStructure,
-      handleFileChange,
-      handleFileRead,
-      handleCreate,
-      handleDelete,
-      handleRename,
-      handleUpload,
-      handleDownload,
-      onCompress,
-      onUncompress,
-      onFileSelect,
-      showConfirmDialog,
-    }),
-    [optimisticFileStructure, selectedFiles, showConfirmDialog, serverId],
-  );
+  const value: ServerManagementFilesContextType = {
+    fileStructure: optimisticFileStructure,
+    selectedFiles,
+    setSelectedFiles,
+    fetchFileStructure,
+    handleFileChange,
+    handleFileRead,
+    handleCreate,
+    handleDelete,
+    handleRename,
+    handleUpload,
+    handleDownload,
+    onCompress,
+    onUncompress,
+    onFileSelect,
+    showConfirmDialog,
+  };
 
   return (
     <ServerManagementFilesContext.Provider value={value}>

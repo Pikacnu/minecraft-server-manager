@@ -26,6 +26,8 @@ export class ServerController {
   private isConnected: boolean = false;
   private retryCount: number = 0;
   private maxRetries: number = 5;
+  private shouldReconnect: boolean = true;
+  private isConnectionListenerRegistered: boolean = false;
 
   constructor(host: string, port: number, log = false) {
     this.host = host;
@@ -35,12 +37,28 @@ export class ServerController {
       port: this.port,
       password: RCONPassword,
     });
+    this.registerConnectionListeners();
   }
 
-  public connect() {
+  private registerConnectionListeners() {
+    if (this.isConnectionListenerRegistered) {
+      return;
+    }
+
+    this.isConnectionListenerRegistered = true;
     this.rconClient.on('end', () => {
       this.isEnded = true;
       this.isConnected = false;
+      if (!this.shouldReconnect) {
+        return;
+      }
+      if (this.retryCount >= this.maxRetries) {
+        console.error(
+          `RCON reconnection aborted after ${this.maxRetries} retries.`,
+        );
+        this.shouldReconnect = false;
+        return;
+      }
       this.retryCount++;
       setTimeout(
         () => {
@@ -56,11 +74,16 @@ export class ServerController {
       this.isEnded = false;
       this.retryCount = 0;
     });
+  }
+
+  public connect() {
+    this.shouldReconnect = true;
     return this.rconClient.connect();
   }
 
   public disconnect() {
     this.isEnded = true;
+    this.shouldReconnect = false;
     return this.rconClient.end();
   }
   public async sendCommand(command: string) {

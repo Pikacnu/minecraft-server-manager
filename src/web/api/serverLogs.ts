@@ -3,7 +3,10 @@ import { Manager } from '@/manager';
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const serverName = url.searchParams.get('serverName') || '';
-  const lines = Number(url.searchParams.get('lines') || '120');
+  const requestedLines = Number(url.searchParams.get('lines') || '120');
+  const lines = Number.isFinite(requestedLines)
+    ? Math.min(1000, Math.max(1, Math.floor(requestedLines)))
+    : 120;
 
   if (!serverName) {
     return Response.json(

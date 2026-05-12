@@ -513,6 +513,24 @@ export class Manager {
     return server.nameTemplate.replace('@PlaceHolder@', target);
   }
 
+  private static async getCurrentServerPodName(
+    serverName: string,
+  ): Promise<string> {
+    const pods = await coreV1Api.listNamespacedPod({
+      namespace: Namespace,
+      labelSelector: `app=minecraft-server,name=${serverName}`,
+    });
+    const podName =
+      pods.items.find((pod) => pod.status?.phase === 'Running')?.metadata
+        ?.name || pods.items[0]?.metadata?.name;
+
+    if (!podName) {
+      throw new Error(`No pod found for server ${serverName}.`);
+    }
+
+    return podName;
+  }
+
   public static async stopServer(serverName: string): Promise<void> {
     if (!this.servers.has(serverName)) {
       throw new Error(`Server ${serverName} not found.`);
@@ -571,10 +589,11 @@ export class Manager {
     if (!server) {
       throw new Error(`Server ${serverName} not found.`);
     }
+    const podName = await this.getCurrentServerPodName(serverName);
     const executeResponse =
       await coreV1Api.connectPostNamespacedPodExecWithHttpInfo({
         namespace: Namespace,
-        name: server.nameTemplate.replace('@PlaceHolder@', 'pod'),
+        name: podName,
         command,
         stderr: true,
         stdin: true,
@@ -598,9 +617,10 @@ export class Manager {
     if (!server) {
       throw new Error(`Server ${serverName} not found.`);
     }
+    const podName = await this.getCurrentServerPodName(serverName);
     const logsResponse = await coreV1Api.readNamespacedPodLogWithHttpInfo({
       namespace: Namespace,
-      name: this.generateName(server, 'deployment'),
+      name: podName,
       tailLines: lines,
     });
     const logs = await logsResponse.body.text();
@@ -614,10 +634,11 @@ export class Manager {
     if (!server) {
       throw new Error(`Server ${serverName} not found.`);
     }
+    const podName = await this.getCurrentServerPodName(serverName);
     const logStream = new PassThrough();
     k8sLogger.log(
       Namespace,
-      server.nameTemplate.replace('@PlaceHolder@', 'deployment'),
+      podName,
       'minecraft-server',
       logStream,
       {
