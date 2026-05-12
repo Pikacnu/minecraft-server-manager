@@ -48,7 +48,7 @@ export class ServerController {
             console.error('Failed to reconnect RCON:', (e as Error).message),
           );
         },
-        1000 ** Math.min(2 ** this.retryCount, 30),
+        1000 * Math.min(2 ** this.retryCount, 30),
       ); // Exponential backoff with max delay of 30 seconds
     });
     this.rconClient.on('connect', () => {
