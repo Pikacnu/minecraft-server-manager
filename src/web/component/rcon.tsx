@@ -3,12 +3,26 @@ import { SendHorizonal, ChevronDown, ChevronUp } from 'lucide-react';
 import { MessageType } from '../websocket/type';
 import { useWebSocket } from '../contexts/websocket';
 
-export default function Rcon({ serverName }: { serverName: string }) {
-  const [lines, setLines] = useState<string[]>([]);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+export default function Rcon({
+  serverName,
+  alwaysOpen = false,
+}: {
+  serverName: string;
+  alwaysOpen?: boolean;
+}) {
+  const [output, setOutput] = useState<string>('');
+  const [isOpen, setIsOpen] = useState<boolean>(alwaysOpen);
   const [inputCommand, setInputCommand] = useState<string>('');
   const { sendMessage, message } = useWebSocket();
   const messageIdRef = useRef<string>('');
+  const terminalRef = useRef<HTMLPreElement>(null);
+
+  const appendOutput = (value: string) => {
+    setOutput((prev) => {
+      const merged = prev ? `${prev}\n${value}` : value;
+      return merged.split('\n').slice(-500).join('\n');
+    });
+  };
 
   const handleSendCommand = () => {
     if (inputCommand.trim() === '') return;
@@ -19,7 +33,7 @@ export default function Rcon({ serverName }: { serverName: string }) {
         serverName,
       },
     });
-    setLines((prevLines) => [...prevLines, `> ${inputCommand}`]);
+    appendOutput(`> ${inputCommand}`);
     setInputCommand('');
   };
 
@@ -39,19 +53,20 @@ export default function Rcon({ serverName }: { serverName: string }) {
         rconPayload.response !== undefined &&
         rconPayload.serverName === serverName
       ) {
-        setLines((prevLines) => [...prevLines, `< ${rconPayload.response}`]);
+        appendOutput(`< ${rconPayload.response}`);
       }
       messageIdRef.current = message?.id || '';
     }
+  }, [message, serverName]);
 
-    const container = document.getElementById('terminal');
-    if (container) {
-      container.scrollTop = container.scrollHeight;
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [lines, message]);
+  }, [output]);
 
   return (
-    <div className='flex flex-col justify-start w-full  rounded-lg mt-4 p-2 bg-gray-500/40'>
+    <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg'>
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
@@ -61,27 +76,22 @@ export default function Rcon({ serverName }: { serverName: string }) {
         </button>
       ) : (
         <>
-          <button
-            onClick={() => setIsOpen(false)}
-            className='p-4 w-full flex gap-2'
-          >
-            <ChevronUp /> RCON Terminal
-          </button>
-          <div className='flex flex-col grow relative'>
-            <div
-              className='bg-black text-white w-full h-48 overflow-y-scroll select-text p-2'
-              id='terminal'
+          {alwaysOpen || (
+            <button
+              onClick={() => setIsOpen(false)}
+              className='p-4 w-full flex gap-2'
             >
-              {lines.map((line, index) => (
-                <div
-                  key={index}
-                  className='font-mono text-sm'
-                >
-                  {line}
-                </div>
-              ))}
-            </div>
-            <div className='flex flex-row'>
+              <ChevronUp /> RCON Terminal
+            </button>
+          )}
+          <div className='grid min-h-0 grow grid-rows-[minmax(0,1fr)_auto] gap-2'>
+            <pre
+              ref={terminalRef}
+              className='min-h-0 w-full overflow-y-auto rounded-lg bg-black p-2 font-mono text-sm text-white whitespace-pre-wrap break-words'
+            >
+              {output || 'No RCON output yet.'}
+            </pre>
+            <div className='mt-2 flex min-w-0 items-center gap-2'>
               <input
                 type='text'
                 value={inputCommand}
@@ -91,10 +101,10 @@ export default function Rcon({ serverName }: { serverName: string }) {
                     handleSendCommand();
                   }
                 }}
-                className='grow border border-gray-300 m-1 p-1 font-mono text-sm rounded-lg'
+                className='min-w-0 flex-1 rounded-lg border border-gray-300 p-2 font-mono text-sm'
               />
               <button
-                className=' hover:bg-gray-800/40 p-2 rounded-xl'
+                className='shrink-0 rounded-xl p-2 hover:bg-gray-800/40'
                 onClick={handleSendCommand}
               >
                 <SendHorizonal />

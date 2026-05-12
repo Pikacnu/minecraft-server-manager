@@ -7,11 +7,13 @@ import gateClient from '@/utils/gate';
 import {
   PhaseEnum,
   Watcher,
+  coreV1Api,
   deleteService,
   deployService,
   getConfigMapData,
   getDeploymentData,
   k8sApiEndpoint,
+  k8sLogger,
   patchConfigMap,
   patchDeployment,
   stopDeploymentRollout,
@@ -27,6 +29,7 @@ import { minecraftServerDeployment } from '@/deployment/minecraft-server';
 import { FileController, FileControllerManager } from './file-manager';
 import { DomainManager, getTopLevelDomain } from './domain-manager';
 import { TaskQueue } from '@/utils/taskQueue';
+import { PassThrough } from 'node:stream';
 
 export enum ServerStatusEnum {
   RUNNING = 'running',
@@ -89,7 +92,7 @@ export class Manager {
         const existingServer = this.servers.get(serverName);
         if (existingServer) {
           if (
-            existingServer.servicesUpdateResourceVersion <=
+            existingServer.servicesUpdateResourceVersion >=
             parseInt(currentResourceVersion)
           ) {
             return;
@@ -510,6 +513,24 @@ export class Manager {
     return server.nameTemplate.replace('@PlaceHolder@', target);
   }
 
+  private static async getCurrentServerPodName(
+    serverName: string,
+  ): Promise<string> {
+    const pods = await coreV1Api.listNamespacedPod({
+      namespace: Namespace,
+      labelSelector: `app=minecraft-server,name=${serverName}`,
+    });
+    const podName =
+      pods.items.find((pod) => pod.status?.phase === 'Running')?.metadata
+        ?.name || pods.items[0]?.metadata?.name;
+
+    if (!podName) {
+      throw new Error(`No pod found for server ${serverName}.`);
+    }
+
+    return podName;
+  }
+
   public static async stopServer(serverName: string): Promise<void> {
     if (!this.servers.has(serverName)) {
       throw new Error(`Server ${serverName} not found.`);
@@ -558,6 +579,74 @@ export class Manager {
 
   public static getServerList(): ServerInfo[] {
     return Array.from(Manager.servers.values());
+  }
+
+  public static async executeServerPod(
+    serverName: string,
+    command: string,
+  ): Promise<string> {
+    const server = Manager.getServerInfoByName(serverName);
+    if (!server) {
+      throw new Error(`Server ${serverName} not found.`);
+    }
+    const podName = await this.getCurrentServerPodName(serverName);
+    const executeResponse =
+      await coreV1Api.connectPostNamespacedPodExecWithHttpInfo({
+        namespace: Namespace,
+        name: podName,
+        command,
+        stderr: true,
+        stdin: true,
+        stdout: true,
+      });
+    if (executeResponse.httpStatusCode !== 101) {
+      throw new Error(
+        `Failed to execute command on server ${serverName}. HTTP status code: ${executeResponse.httpStatusCode}`,
+      );
+    }
+
+    const executeResultText = await executeResponse.body.text();
+    return executeResultText;
+  }
+
+  public static async readServerLogs(
+    serverName: string,
+    lines: number = 100,
+  ): Promise<string> {
+    const server = Manager.getServerInfoByName(serverName);
+    if (!server) {
+      throw new Error(`Server ${serverName} not found.`);
+    }
+    const podName = await this.getCurrentServerPodName(serverName);
+    const logsResponse = await coreV1Api.readNamespacedPodLogWithHttpInfo({
+      namespace: Namespace,
+      name: podName,
+      tailLines: lines,
+    });
+    const logs = await logsResponse.body.text();
+    return logs;
+  }
+
+  public static async getFollowedServerLogs(
+    serverName: string,
+  ): Promise<PassThrough> {
+    const server = Manager.getServerInfoByName(serverName);
+    if (!server) {
+      throw new Error(`Server ${serverName} not found.`);
+    }
+    const podName = await this.getCurrentServerPodName(serverName);
+    const logStream = new PassThrough();
+    k8sLogger.log(
+      Namespace,
+      podName,
+      'minecraft-server',
+      logStream,
+      {
+        follow: true,
+        pretty: true,
+      },
+    );
+    return logStream;
   }
 
   public static getServerStatus(

@@ -23,6 +23,22 @@ const server = serve({
         success: true,
         data: { instances: ['preview-server-1', 'preview-server-2'] },
       }),
+    '/api/server-resource': async () =>
+      Response.json({
+        status: 'ok',
+        data: {
+          name: 'preview-server-1',
+          cpu: '120m',
+          memory: '512Mi',
+          allocatedCpu: '1',
+          allocatedMemory: '2Gi',
+        },
+      }),
+    '/api/server-logs': async () =>
+      Response.json({
+        status: 'ok',
+        data: '[12:00:00] [Server thread/INFO]: Mock preview log line\n[12:00:01] [Server thread/INFO]: Server is running',
+      }),
     '/api/file-system': async (req: Request) => {
       const url = new URL(req.url);
       const type = url.searchParams.get('type');

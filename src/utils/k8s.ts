@@ -2,6 +2,8 @@ import {
   AppsV1Api,
   CoreV1Api,
   KubeConfig,
+  Log,
+  Metrics,
   V1ConfigMap,
   V1Deployment,
   V1Pod,
@@ -12,7 +14,6 @@ import type { ServicesDeployments } from './type';
 import { Namespace } from './config';
 import { spawn } from 'child_process';
 import * as yaml from 'js-yaml';
-import { fetch } from 'bun';
 
 const kubeConfig = new KubeConfig();
 
@@ -99,6 +100,8 @@ if (process.env.KUBERNETES_SERVICE_HOST) {
 
 export const coreV1Api = kubeConfig.makeApiClient(CoreV1Api);
 export const appsV1Api = kubeConfig.makeApiClient(AppsV1Api);
+export const k8sLogger = new Log(kubeConfig);
+export const k8sMetrics = new Metrics(kubeConfig);
 export default kubeConfig;
 
 export enum k8sApiEndpoint {
@@ -1040,3 +1043,11 @@ export async function patchService(
     throw err;
   }
 }
+
+export type PodData = {
+  cpu: string;
+  memory: string;
+  allocatedCpu: string;
+  allocatedMemory: string;
+  name: string;
+};

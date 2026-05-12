@@ -1,25 +1,33 @@
-import { useState, useEffect, useOptimistic, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useServers } from '../contexts/servers';
-import ServerSetting from './../component/serverSetting';
-import { Send } from 'lucide-react';
 import {
-  DirectoryType,
   MinecraftServerType,
-  type DirectoryStructure,
   type MinecraftServerDeploymentsGeneratorArguments,
   type Variables,
 } from '@/utils/type';
-import DirectoryDisplay from '../component/directoryDisplay';
 import { useNotification } from '../contexts/notification';
 import { useConfirmDialog } from '../contexts/confirmDialog';
 import { NotificationType } from '../utils/enums';
+import ManagementSidebar from '../component/server-manage/management-sidebar';
+import ManagementOverview from '../component/server-manage/management-overview';
+import ManagementFilesPanel from '../component/server-manage/management-files-panel';
+import ManagementSettings from '../component/server-manage/management-settings';
+import { ManagementSection } from '../component/server-manage/types';
+import { type PodData } from '@/utils/k8s';
+import { useWebSocket } from '../contexts/websocket';
+import { MessageType } from '../websocket/type';
+import { ServerManagementFilesProvider } from '../contexts/serverManagementFiles';
 
 export default function ServerManagement() {
   const { serverInfo, currentSelectedServerId, setCurrentSelectedServerId } =
     useServers();
-  const [isPending, startTransition] = useTransition();
   const { addNotification } = useNotification();
   const { showConfirmDialog } = useConfirmDialog();
+  const { sendMessage, message } = useWebSocket();
+  const latestHandledLogMessageId = useRef<string>('');
+  const [activeSection, setActiveSection] = useState<ManagementSection>(
+    ManagementSection.Overview,
+  );
   const [currentServerSetting, setCurrentServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> &
       Variables & { serverSettingId?: string }
@@ -27,107 +35,16 @@ export default function ServerManagement() {
   const [newServerSetting, setNewServerSetting] = useState<
     Omit<MinecraftServerDeploymentsGeneratorArguments, 'Variables'> & Variables
   >({});
+  const [resourceData, setResourceData] = useState<PodData | null>(null);
+  const [serverLogs, setServerLogs] = useState<string>('');
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
+  const [isRefreshingDiagnostics, setIsRefreshingDiagnostics] = useState(false);
 
-  const [currentFileStructure, setCurrentFileStructure] =
-    useState<DirectoryStructure>({
-      name: '/',
-      type: DirectoryType.Directory,
-      children: [],
-    });
-
-  const [optimisticFileStructure, addOptimisticFileStructure] = useOptimistic(
-    currentFileStructure,
-    (state, action: { type: string; payload: any }) => {
-      const updateNode = (
-        node: DirectoryStructure,
-        pathParts: string[],
-        updateFn: (n: DirectoryStructure) => DirectoryStructure,
-      ): DirectoryStructure => {
-        if (pathParts.length === 0) return updateFn(node);
-        const [head, ...tail] = pathParts;
-        return {
-          ...node,
-          children: node.children?.map((child) =>
-            child.name === head ? updateNode(child, tail, updateFn) : child,
-          ),
-        };
-      };
-
-      switch (action.type) {
-        case 'create': {
-          const { path, type } = action.payload;
-          const parts = path.split('/').filter(Boolean);
-          const name = parts.pop();
-          return updateNode(state, parts, (node) => ({
-            ...node,
-            children: [
-              ...(node.children || []),
-              {
-                name: name!,
-                type,
-                children: type === DirectoryType.Directory ? [] : undefined,
-              },
-            ],
-          }));
-        }
-        case 'delete': {
-          const { path } = action.payload;
-          const parts = path.split('/').filter(Boolean);
-          const name = parts.pop();
-          return updateNode(state, parts, (node) => ({
-            ...node,
-            children: node.children?.filter((child) => child.name !== name),
-          }));
-        }
-        case 'rename': {
-          const { oldPath, newPath } = action.payload;
-          const oldParts = oldPath.split('/').filter(Boolean);
-          const oldName = oldParts.pop();
-          const newName = newPath.split('/').filter(Boolean).pop();
-          return updateNode(state, oldParts, (node) => ({
-            ...node,
-            children: node.children?.map((child) =>
-              child.name === oldName ? { ...child, name: newName! } : child,
-            ),
-          }));
-        }
-        default:
-          return state;
-      }
-    },
+  const currentServer = serverInfo.find(
+    (server) => server.id === currentSelectedServerId,
   );
 
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-
-  const fetchFileStructure = async () => {
-    if (currentSelectedServerId === '') return;
-    const response = await fetch(
-      `/api/file-system?name=${currentSelectedServerId}&type=structure`,
-    );
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        setCurrentFileStructure(data.data);
-      } else {
-        setCurrentFileStructure({
-          name: '/',
-          type: DirectoryType.Directory,
-          children: [],
-        });
-      }
-    } else {
-      setCurrentFileStructure({
-        name: '/',
-        type: DirectoryType.Directory,
-        children: [],
-      });
-    }
-  };
-
   useEffect(() => {
-    if (serverInfo.length > 0 && currentSelectedServerId === '') {
-      setCurrentSelectedServerId(serverInfo[0]!.id);
-    }
     async function fetchServerSettings() {
       if (currentSelectedServerId === '') {
         setCurrentServerSetting({});
@@ -157,356 +74,295 @@ export default function ServerManagement() {
       }
     }
 
-    fetchServerSettings();
-    fetchFileStructure();
+    void fetchServerSettings();
   }, [currentSelectedServerId]);
 
+  useEffect(() => {
+    setActiveSection(ManagementSection.Overview);
+  }, [currentSelectedServerId]);
+
+  useEffect(() => {
+    if (currentSelectedServerId === '') {
+      setResourceData(null);
+      setServerLogs('');
+      setDiagnosticError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshResource = async () => {
+      setIsRefreshingDiagnostics(true);
+      try {
+        const resourceResponse = await fetch(
+          `/api/server-resource?serverName=${encodeURIComponent(currentSelectedServerId || '')}`,
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        if (resourceResponse.ok) {
+          const resourcePayload = await resourceResponse.json();
+          setResourceData(
+            resourcePayload.status === 'ok' ? resourcePayload.data : null,
+          );
+        } else {
+          setResourceData(null);
+        }
+
+        setDiagnosticError(null);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to refresh diagnostics:', error);
+          setDiagnosticError('Failed to refresh diagnostics.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRefreshingDiagnostics(false);
+        }
+      }
+    };
+
+    const fetchInitialLogs = async () => {
+      try {
+        const logsResponse = await fetch(
+          `/api/server-logs?serverName=${encodeURIComponent(currentSelectedServerId || '')}&lines=120`,
+        );
+        if (cancelled) {
+          return;
+        }
+
+        if (logsResponse.ok) {
+          const logsPayload = await logsResponse.json();
+          setServerLogs(logsPayload.status === 'ok' ? logsPayload.data : '');
+        } else {
+          setServerLogs('');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch initial logs:', error);
+        }
+      }
+    };
+
+    void Promise.all([fetchInitialLogs(), refreshResource()]);
+    const interval = setInterval(() => {
+      void refreshResource();
+    }, 10_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [currentSelectedServerId]);
+
+  useEffect(() => {
+    if (!currentSelectedServerId) {
+      return;
+    }
+
+    sendMessage({
+      type: MessageType.SERVERLOG,
+      payload: {
+        serverName: currentSelectedServerId,
+        action: 'subscribe',
+      },
+    });
+
+    return () => {
+      sendMessage({
+        type: MessageType.SERVERLOG,
+        payload: {
+          serverName: currentSelectedServerId,
+          action: 'unsubscribe',
+        },
+      });
+    };
+  }, [currentSelectedServerId, sendMessage]);
+
+  useEffect(() => {
+    if (
+      !message ||
+      message.id === latestHandledLogMessageId.current ||
+      message.type !== MessageType.SERVERLOG
+    ) {
+      return;
+    }
+
+    const payload = message.payload as {
+      status: 'ok' | 'error';
+      serverName: string;
+      chunk?: string;
+    };
+
+    if (payload.serverName !== currentSelectedServerId) {
+      latestHandledLogMessageId.current = message.id;
+      return;
+    }
+
+    if (payload.status === 'error') {
+      setDiagnosticError('Live log stream failed.');
+      latestHandledLogMessageId.current = message.id;
+      return;
+    }
+
+    if (payload.chunk) {
+      const incomingChunk = payload.chunk;
+      setServerLogs((previousLogs) => {
+        const merged = previousLogs
+          ? `${previousLogs}\n${incomingChunk}`
+          : incomingChunk;
+        const lines = merged.split('\n');
+        return lines.slice(-500).join('\n');
+      });
+    }
+
+    latestHandledLogMessageId.current = message.id;
+  }, [message, currentSelectedServerId]);
+
+  const serverSettingDefaultValue =
+    Object.keys(currentServerSetting).length > 0
+      ? {
+          ...currentServerSetting,
+          serverSettingId: currentServerSetting.serverSettingId || '',
+        }
+      : {
+          serverSettingId: '',
+        };
+
   return (
-    <div className='flex h-full w-full flex-col overflow-hidden p-4'>
-      <select
-        className='w-full rounded-lg border border-gray-300 bg-white p-2 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
-        value={currentSelectedServerId}
-        name='server-select'
-        onChange={(e) => setCurrentSelectedServerId(e.target.value)}
-      >
-        {serverInfo.map((server) => (
-          <option
-            key={server.id}
-            value={server.id}
-          >
-            {server.name} - {server.address}
-          </option>
-        ))}
-      </select>
-      <hr className='my-4 border-gray-300' />
-      <div className='flex grow flex-col overflow-hidden'>
-        {currentSelectedServerId === '' ? (
-          <div className='text-gray-500 dark:text-gray-400'>
-            No server selected.
-          </div>
-        ) : (
-          <section className='flex grow flex-col overflow-hidden rounded-xl border border-gray-300 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:p-4'>
-            <div className='mb-3 flex text-gray-700 dark:text-gray-200'>
-              Management options for server ID: {currentSelectedServerId}
-            </div>
-            <div className='relative mt-2 grid grow grid-cols-1 gap-4 overflow-hidden lg:grid-cols-2'>
-              <div className='relative flex min-h-0 min-w-0 grow flex-col overflow-hidden'>
-                <div className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
-                  <ServerSetting
-                    isToggleAble={false}
-                    open={true}
-                    defaultValue={
-                      Object.keys(currentServerSetting).length > 0
-                        ? {
-                            ...currentServerSetting,
-                            serverSettingId:
-                              currentServerSetting.serverSettingId || '',
-                          }
-                        : {
-                            serverSettingId: '',
-                          }
-                    }
-                    setSetting={setNewServerSetting}
-                  />
-                </div>
-                <div className='mt-3 shrink-0 border-t border-gray-300 bg-white pt-3 dark:border-gray-700 dark:bg-gray-800'>
-                  <button
-                    className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit sm:self-end'
-                    onClick={async () => {
-                      const confirmed = await showConfirmDialog({
-                        title: 'Restart Server',
-                        message:
-                          'Submitting these changes will restart the server. Are you sure you want to continue?',
-                        checkboxLabel:
-                          'I understand that the server will restart',
-                        requireCheckbox: true,
-                        confirmText: 'Submit Changes',
-                        cancelText: 'Cancel',
-                      });
-
-                      if (!confirmed) {
-                        return;
-                      }
-
-                      async function submitSettings() {
-                        try {
-                          const response = await fetch('/api/server-instance', {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              serverName: currentSelectedServerId,
-                              variables: newServerSetting,
-                            }),
-                          });
-                          if (response.ok) {
-                            addNotification(
-                              'Server settings updated successfully',
-                              NotificationType.Success,
-                            );
-                          } else {
-                            addNotification(
-                              'Failed to update server settings',
-                              NotificationType.Error,
-                            );
-                          }
-                        } catch (error) {
-                          addNotification(
-                            'Failed to update server settings',
-                            NotificationType.Error,
-                          );
-                        }
-                      }
-                      submitSettings();
-                    }}
-                  >
-                    <Send className='h-4 w-4' />
-                    Submit
-                  </button>
-                </div>
-              </div>
-              <div className='min-h-0 min-w-0 overflow-auto rounded-lg border border-gray-300 p-2 dark:border-gray-700'>
-                <DirectoryDisplay
-                  fileStructure={optimisticFileStructure}
-                  currentPath={[]}
-                  selectedFiles={selectedFiles}
-                  onFileSelect={(fileName) => {
-                    setSelectedFiles((prev) =>
-                      prev.includes(fileName)
-                        ? prev.filter((f) => f !== fileName)
-                        : [...prev, fileName],
-                    );
-                  }}
-                  onCompress={async (path, files) => {
-                    if (currentSelectedServerId === '') return;
-                    const outputPath = path
-                      ? `${path}/compressed.zip`
-                      : 'compressed.zip';
-                    await fetch('/api/file-system', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        action: 'compress',
-                        name: currentSelectedServerId,
-                        files: files.map((f) => (path ? `${path}/${f}` : f)),
-                        outputPath,
-                      }),
-                    });
-                    setSelectedFiles([]);
-                    fetchFileStructure();
-                  }}
-                  onUncompress={async (path, zipFile) => {
-                    if (currentSelectedServerId === '') return;
-                    const outputDir = path
-                      ? `${path}/${zipFile}-uncompressed`
-                      : `${zipFile}-uncompressed`;
-                    await fetch('/api/file-system', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        action: 'uncompress',
-                        name: currentSelectedServerId,
-                        zipPath: path ? `${path}/${zipFile}` : zipFile,
-                        outputDir,
-                      }),
-                    });
-                    setSelectedFiles([]);
-                    fetchFileStructure();
-                  }}
-                  onNavigate={(path) => {}}
-                  handleFileChange={(path, content) => {
-                    if (path === '' || currentSelectedServerId === '') return;
-                    const submitFileChange = async () => {
-                      await fetch(
-                        `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                          path,
-                        )}`,
-                        { method: 'PUT', body: content },
-                      );
-                      fetchFileStructure();
-                    };
-                    submitFileChange();
-                  }}
-                  handleFileRead={async (path) => {
-                    if (path === '' || currentSelectedServerId === '')
-                      return '';
-                    const fileResponse = await fetch(
-                      `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                        path,
-                      )}`,
-                    );
-                    if (fileResponse.ok) {
-                      const data = await fileResponse.json();
-                      if (data.success) {
-                        return data.data as string;
-                      }
-                    } else {
-                      return `Error: ${fileResponse.status} ${fileResponse.statusText}`;
-                    }
-                    return '';
-                  }}
-                  handleCreate={async (path, type) => {
-                    if (currentSelectedServerId === '') return;
-                    startTransition(async () => {
-                      addOptimisticFileStructure({
-                        type: 'create',
-                        payload: { path, type },
-                      });
-                      await fetch(`/api/file-system`, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                          name: currentSelectedServerId,
-                          type,
-                          path: path,
-                          ...(type === DirectoryType.File
-                            ? { content: '' }
-                            : {}),
-                        }),
-                      });
-                      fetchFileStructure();
-                    });
-                  }}
-                  handleDelete={async (path, type, recursive) => {
-                    if (currentSelectedServerId === '') return false;
-                    if (path === '') {
-                      console.error('Cannot delete root directory');
-                      return false;
-                    }
-                    if (recursive) {
-                      if (type === DirectoryType.File) {
-                        throw new Error(
-                          'Invalid state: recursive delete on file',
-                        );
-                      }
-                      const confirmed = await showConfirmDialog({
-                        title: 'Delete Folder Recursively',
-                        message: `Are you sure you want to recursively delete the folder at ${path} and all its contents?\n\nThis action cannot be undone.`,
-                        checkboxLabel:
-                          'I understand this will delete all contents permanently',
-                        requireCheckbox: true,
-                        confirmText: 'Delete',
-                        cancelText: 'Cancel',
-                      });
-                      if (!confirmed) return false;
-                    }
-                    if (type === DirectoryType.Directory && !recursive) {
-                      const confirmed = await showConfirmDialog({
-                        title: 'Delete Empty Folder',
-                        message: `Are you sure you want to delete the folder at ${path} without deleting its contents?\n\nThis may fail if the folder is not empty.`,
-                        confirmText: 'Delete',
-                        cancelText: 'Cancel',
-                      });
-                      if (!confirmed) return false;
-                    }
-
-                    startTransition(async () => {
-                      addOptimisticFileStructure({
-                        type: 'delete',
-                        payload: { path },
-                      });
-                      try {
-                        const response = await fetch(
-                          `/api/file-system?name=${currentSelectedServerId}`,
-                          {
-                            method: 'DELETE',
-                            body: JSON.stringify({
-                              name: currentSelectedServerId,
-                              path,
-                              type,
-                              recursive,
-                            }),
-                          },
-                        );
-                        if (response.ok) {
-                          setSelectedFiles([]);
-                          fetchFileStructure();
-                        } else {
-                          const data = await response.json();
-                          console.error(
-                            'Delete request failed with status:',
-                            response.status,
-                          );
-                          addNotification(
-                            data.message ||
-                              'Unknown error occurred during deletion.',
-                            NotificationType.Error,
-                          );
-                          fetchFileStructure();
-                        }
-                      } catch (e) {
-                        console.error('Error during delete request:', e);
-                        fetchFileStructure();
-                      }
-                    });
-                    return true;
-                  }}
-                  handleRename={async (oldPath, newPath) => {
-                    if (currentSelectedServerId === '') return;
-                    startTransition(async () => {
-                      addOptimisticFileStructure({
-                        type: 'rename',
-                        payload: { oldPath, newPath },
-                      });
-                      await fetch(`/api/file-system`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          name: currentSelectedServerId,
-                          oldPath,
-                          newPath,
-                        }),
-                      });
-                      setSelectedFiles([]);
-                      fetchFileStructure();
-                    });
-                  }}
-                  handleUpload={async (path, file) => {
-                    if (currentSelectedServerId === '') return;
-                    startTransition(async () => {
-                      addOptimisticFileStructure({
-                        type: 'create',
-                        payload: { path, type: DirectoryType.File },
-                      });
-                      await fetch(
-                        `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                          path,
-                        )}`,
-                        { method: 'PUT', body: file },
-                      );
-                      fetchFileStructure();
-                    });
-                  }}
-                  handleDownload={async (path, fileName) => {
-                    if (path === '' || currentSelectedServerId === '') return;
-                    const fileResponse = await fetch(
-                      `/api/file-system?name=${currentSelectedServerId}&type=file&path=${encodeURIComponent(
-                        path,
-                      )}`,
-                    );
-                    if (fileResponse.ok) {
-                      const data = await fileResponse.json();
-                      if (data.success) {
-                        const blob = new Blob([data.data], {
-                          type: 'application/octet-stream',
-                        });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                      }
-                    }
-                  }}
-                  showConfirmDialog={showConfirmDialog}
-                />
-              </div>
-            </div>
-          </section>
-        )}
+    <div className='flex h-full w-full flex-col overflow-hidden p-4 max-xl:overflow-y-auto'>
+      <div className='mb-4'>
+        <h2 className='text-2xl font-semibold'>Server Management</h2>
       </div>
+
+      {currentSelectedServerId === '' ? (
+        <div className='flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white px-4 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'>
+          <p>Please select a server to continue.</p>
+          {serverInfo.length > 0 && (
+            <div className='w-full max-w-sm'>
+              <select
+                value={currentSelectedServerId}
+                onChange={(event) =>
+                  setCurrentSelectedServerId(event.target.value)
+                }
+                className='w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100'
+              >
+                <option value=''>Choose a server</option>
+                {serverInfo.map((server) => (
+                  <option
+                    key={server.id}
+                    value={server.id}
+                  >
+                    {server.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {serverInfo.length === 0 && (
+            <p className='text-sm'>No available server found yet.</p>
+          )}
+        </div>
+      ) : (
+        <div className='flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]'>
+          <ManagementSidebar
+            server={{
+              name: currentServer?.name || currentSelectedServerId || '',
+              address: currentServer?.address || 'No address available',
+              status: currentServer?.status || 'unknown',
+              playersOnline: currentServer?.playersOnline || 0,
+            }}
+            serverOptions={serverInfo.map((server) => ({
+              id: server.id,
+              name: server.name,
+            }))}
+            selectedServerId={currentSelectedServerId}
+            onSelectServer={setCurrentSelectedServerId}
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
+            resourceData={resourceData}
+            isRefreshingDiagnostics={isRefreshingDiagnostics}
+          />
+
+          <section className='min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-300 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:overflow-hidden'>
+            {activeSection === ManagementSection.Overview && (
+              <ManagementOverview
+                serverName={
+                  currentServer?.name || currentSelectedServerId || ''
+                }
+                serverLogs={serverLogs}
+                resourceData={resourceData}
+                diagnosticError={diagnosticError}
+                isRefreshingDiagnostics={isRefreshingDiagnostics}
+                playerCount={currentServer?.playersOnline ?? null}
+              />
+            )}
+
+            {activeSection === ManagementSection.Files && (
+              <ServerManagementFilesProvider
+                serverId={currentSelectedServerId}
+                showConfirmDialog={showConfirmDialog}
+                addNotification={addNotification}
+              >
+                <ManagementFilesPanel />
+              </ServerManagementFilesProvider>
+            )}
+
+            {activeSection === ManagementSection.Settings && (
+              <ManagementSettings
+                defaultValue={serverSettingDefaultValue}
+                setSetting={setNewServerSetting}
+                onSubmit={async () => {
+                  const confirmed = await showConfirmDialog({
+                    title: 'Restart Server',
+                    message:
+                      'Submitting these changes will restart the server. Are you sure you want to continue?',
+                    checkboxLabel: 'I understand that the server will restart',
+                    requireCheckbox: true,
+                    confirmText: 'Submit Changes',
+                    cancelText: 'Cancel',
+                  });
+
+                  if (!confirmed) {
+                    return;
+                  }
+
+                  try {
+                    const response = await fetch('/api/server-instance', {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        serverName: currentSelectedServerId,
+                        variables: newServerSetting,
+                      }),
+                    });
+                    if (response.ok) {
+                      addNotification(
+                        'Server settings updated successfully',
+                        NotificationType.Success,
+                      );
+                    } else {
+                      addNotification(
+                        'Failed to update server settings',
+                        NotificationType.Error,
+                      );
+                    }
+                  } catch (error) {
+                    addNotification(
+                      'Failed to update server settings',
+                      NotificationType.Error,
+                    );
+                  }
+                }}
+              />
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

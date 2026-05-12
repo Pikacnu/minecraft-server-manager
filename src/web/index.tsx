@@ -10,6 +10,12 @@ import fileSystem from './api/fileSystem';
 import gateManage from './api/gateManage';
 import settings from './api/settings';
 import { serverInfoHandler } from './websocket/serverinfo';
+import serverLogs from './api/serverLogs';
+import serverResource from './api/serverResource';
+import {
+  closeTrackedLogSubscriptions,
+  serverLogHandler,
+} from './websocket/serverlogs';
 
 export type WebServerArguments = Partial<
   Omit<
@@ -17,6 +23,11 @@ export type WebServerArguments = Partial<
     'routes' | 'development' | 'fetch' | 'websocket'
   >
 >;
+
+type WebSocketConnectionData = {
+  connectionId: string;
+  logSubscriptions: Set<string>;
+};
 
 export const webServer = async (args?: WebServerArguments) => {
   const server = serve({
@@ -28,6 +39,8 @@ export const webServer = async (args?: WebServerArguments) => {
       '/api/server-manage': serverManage,
       '/api/server-instance': serverInstance,
       '/api/file-system': fileSystem,
+      '/api/server-logs': serverLogs,
+      '/api/server-resource': serverResource,
       '/api/gate-manage': gateManage,
       '/api/settings': settings,
       '/api/instance-scanner': instanceScanner,
@@ -39,7 +52,10 @@ export const webServer = async (args?: WebServerArguments) => {
 
       if (pathname === '/api/websocket') {
         const isUpgraded = server.upgrade(request, {
-          data: {},
+          data: {
+            connectionId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            logSubscriptions: new Set<string>(),
+          },
         });
         if (isUpgraded) {
           return;
@@ -92,6 +108,20 @@ export const webServer = async (args?: WebServerArguments) => {
                 },
               );
               break;
+            case MessageType.SERVERLOG: {
+              const connectionData = ws.data as WebSocketConnectionData;
+              void serverLogHandler(
+                parsedMessage as SendMessage<MessageType.SERVERLOG>,
+                (responseMessage) => {
+                  ws.send(JSON.stringify(responseMessage));
+                },
+                connectionData.connectionId,
+                (subscriptionId) => {
+                  connectionData.logSubscriptions.add(subscriptionId);
+                },
+              );
+              break;
+            }
             default:
               console.error(
                 'Unknown WebSocket message type:',
@@ -102,7 +132,13 @@ export const webServer = async (args?: WebServerArguments) => {
           console.error('Error parsing WebSocket message:', error);
         }
       },
-      close(ws, code, reason) {
+      async close(ws, code, reason) {
+        const connectionData = ws.data as WebSocketConnectionData;
+        if (connectionData.logSubscriptions?.size) {
+          await closeTrackedLogSubscriptions(
+            connectionData.logSubscriptions.values(),
+          );
+        }
         //console.log(`WebSocket connection closed: ${code} - ${reason}`);
       },
     },
@@ -117,3 +153,17 @@ export const webServer = async (args?: WebServerArguments) => {
   } as Parameters<typeof serve>[0]);
   return server;
 };
+
+if (import.meta.main) {
+  (async () => {
+    try {
+      const server = await webServer({
+        port: 3000,
+        hostname: 'localhost',
+      });
+      console.log(`Server started at http://${server.hostname}:${server.port}`);
+    } catch (error) {
+      console.error('Failed to start server:', error);
+    }
+  })();
+}
