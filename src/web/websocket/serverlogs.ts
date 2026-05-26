@@ -43,9 +43,9 @@ export async function serverLogHandler(
   }
 
   try {
-    subscriberSenders.set(subscriptionId, send);
     trackSubscriptionId(subscriptionId);
     await streamManager.createLogStream(payload.serverName, subscriptionId);
+    subscriberSenders.set(subscriptionId, send);
 
     send({
       type: MessageType.SERVERLOG,
@@ -59,6 +59,7 @@ export async function serverLogHandler(
       `Failed to create log stream for server ${payload.serverName}:`,
       error,
     );
+    subscriberSenders.delete(subscriptionId);
     send({
       type: MessageType.SERVERLOG,
       payload: {

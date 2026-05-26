@@ -1,6 +1,7 @@
 import {
   AppsV1Api,
   CoreV1Api,
+  Exec,
   KubeConfig,
   Log,
   Metrics,
@@ -102,6 +103,7 @@ export const coreV1Api = kubeConfig.makeApiClient(CoreV1Api);
 export const appsV1Api = kubeConfig.makeApiClient(AppsV1Api);
 export const k8sLogger = new Log(kubeConfig);
 export const k8sMetrics = new Metrics(kubeConfig);
+export const k8sExec = new Exec(kubeConfig);
 export default kubeConfig;
 
 export enum k8sApiEndpoint {

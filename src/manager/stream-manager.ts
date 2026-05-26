@@ -34,6 +34,13 @@ export class LogStreamManager {
   }
 
   public async createLogStream(serverName: string, subscriptionId: string) {
+    const existing = this.logStreams.get(subscriptionId);
+    if (existing) {
+      existing.removeAllListeners();
+      existing.end();
+      this.unregisterLogStream(subscriptionId);
+    }
+
     const logStream = await Manager.getFollowedServerLogs(serverName);
     this.registerLogStream(subscriptionId, logStream);
 

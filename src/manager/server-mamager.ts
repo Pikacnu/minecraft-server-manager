@@ -13,6 +13,7 @@ import {
   getConfigMapData,
   getDeploymentData,
   k8sApiEndpoint,
+  k8sExec,
   k8sLogger,
   patchConfigMap,
   patchDeployment,
@@ -590,23 +591,46 @@ export class Manager {
       throw new Error(`Server ${serverName} not found.`);
     }
     const podName = await this.getCurrentServerPodName(serverName);
-    const executeResponse =
-      await coreV1Api.connectPostNamespacedPodExecWithHttpInfo({
-        namespace: Namespace,
-        name: podName,
-        command,
-        stderr: true,
-        stdin: true,
-        stdout: true,
-      });
-    if (executeResponse.httpStatusCode !== 101) {
-      throw new Error(
-        `Failed to execute command on server ${serverName}. HTTP status code: ${executeResponse.httpStatusCode}`,
-      );
-    }
 
-    const executeResultText = await executeResponse.body.text();
-    return executeResultText;
+    return new Promise<string>((resolve, reject) => {
+      let output = '';
+      let errOutput = '';
+      const stdout = new PassThrough();
+      const stderr = new PassThrough();
+
+      stdout.on('data', (chunk: Buffer) => {
+        output += chunk.toString();
+      });
+      stderr.on('data', (chunk: Buffer) => {
+        errOutput += chunk.toString();
+      });
+
+      k8sExec
+        .exec(
+          Namespace,
+          podName,
+          'minecraft-server',
+          command.split(' '),
+          stdout,
+          stderr,
+          null,
+          false,
+          (status) => {
+            if (status.status === 'Success') {
+              resolve(output);
+            } else {
+              reject(
+                new Error(
+                  errOutput ||
+                    status.message ||
+                    `Command execution failed on server ${serverName}`,
+                ),
+              );
+            }
+          },
+        )
+        .catch(reject);
+    });
   }
 
   public static async readServerLogs(
@@ -623,8 +647,7 @@ export class Manager {
       name: podName,
       tailLines: lines,
     });
-    const logs = await logsResponse.body.text();
-    return logs;
+    return logsResponse.body;
   }
 
   public static async getFollowedServerLogs(

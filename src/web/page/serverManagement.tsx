@@ -37,7 +37,9 @@ export default function ServerManagement() {
   >({});
   const [resourceData, setResourceData] = useState<PodData | null>(null);
   const [serverLogs, setServerLogs] = useState<string>('');
-  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
+  const [resourceError, setResourceError] = useState<string | null>(null);
+  const [logStreamError, setLogStreamError] = useState<string | null>(null);
+  const diagnosticError = resourceError || logStreamError;
   const [isRefreshingDiagnostics, setIsRefreshingDiagnostics] = useState(false);
 
   const currentServer = serverInfo.find(
@@ -85,11 +87,15 @@ export default function ServerManagement() {
     if (currentSelectedServerId === '') {
       setResourceData(null);
       setServerLogs('');
-      setDiagnosticError(null);
+      setResourceError(null);
+      setLogStreamError(null);
       return;
     }
 
     let cancelled = false;
+
+    setResourceError(null);
+    setLogStreamError(null);
 
     const refreshResource = async () => {
       setIsRefreshingDiagnostics(true);
@@ -111,11 +117,11 @@ export default function ServerManagement() {
           setResourceData(null);
         }
 
-        setDiagnosticError(null);
+        setResourceError(null);
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to refresh diagnostics:', error);
-          setDiagnosticError('Failed to refresh diagnostics.');
+          setResourceError('Failed to refresh diagnostics.');
         }
       } finally {
         if (!cancelled) {
@@ -202,7 +208,7 @@ export default function ServerManagement() {
     }
 
     if (payload.status === 'error') {
-      setDiagnosticError('Live log stream failed.');
+      setLogStreamError('Live log stream failed.');
       latestHandledLogMessageId.current = message.id;
       return;
     }

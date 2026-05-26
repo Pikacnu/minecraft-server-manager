@@ -7,8 +7,12 @@ export class ResourceMonitor {
 
   private cronJob: NodeJS.Timeout | null = null;
 
+  private isRunning: boolean = false;
+
   constructor(interval: number = 1_000 * 2) {
     this.cronJob = setInterval(async () => {
+      if (this.isRunning) return;
+      this.isRunning = true;
       try {
         const allServerPod = await coreV1Api.listNamespacedPod({
           namespace: Namespace,
@@ -62,6 +66,8 @@ export class ResourceMonitor {
         this.podData = nextPodData;
       } catch (error) {
         console.error('Failed to update resource monitor data:', error);
+      } finally {
+        this.isRunning = false;
       }
     }, interval);
   }
