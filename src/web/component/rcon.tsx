@@ -39,7 +39,11 @@ export default function Rcon({
   };
 
   useEffect(() => {
-    if (message && messageIdRef.current !== message.id && message.type === MessageType.RCON) {
+    if (
+      message &&
+      messageIdRef.current !== message.id &&
+      message.type === MessageType.RCON
+    ) {
       const payload = message.payload as {
         status: string;
         response?: string;

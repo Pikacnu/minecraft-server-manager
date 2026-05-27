@@ -113,7 +113,9 @@ export default function ManagementTerminal({
         }
 
         if (execPayload.status === 'error') {
-          appendOutput(`[exec] ${execPayload.message || 'Exec session failed.'}`);
+          appendOutput(
+            `[exec] ${execPayload.message || 'Exec session failed.'}`,
+          );
           sessionIdRef.current = '';
           setSessionId('');
         }

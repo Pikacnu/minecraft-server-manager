@@ -309,7 +309,9 @@ export default function ServerManagement() {
 
             {activeSection === ManagementSection.Terminal && (
               <ManagementTerminal
-                serverName={currentServer?.name || currentSelectedServerId || ''}
+                serverName={
+                  currentServer?.name || currentSelectedServerId || ''
+                }
                 alwaysOpen={true}
               />
             )}

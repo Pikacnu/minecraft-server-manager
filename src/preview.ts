@@ -139,9 +139,7 @@ const server = serve({
               type: MessageType.RCON,
               payload: {
                 status: 'success',
-                response: `[Mock] Executed command: ${
-                  msg.payload.command
-                }`,
+                response: `[Mock] Executed command: ${msg.payload.command}`,
                 serverName: msg.payload.serverName,
               },
             }),

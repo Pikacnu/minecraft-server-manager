@@ -2,9 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [ main, update-server-mangement ]
+    branches: [main, update-server-mangement]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   eslint:
@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "21"
 
       - name: Install dependencies
         run: |
