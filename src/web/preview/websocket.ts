@@ -5,7 +5,8 @@ const chat = ws.link('*/api/websocket');
 const execSessions = new Map<string, string>();
 
 export const wsHandlers = [
-  chat.addEventListener('connection', ({ client }: { client: MockClient }) => {
+  chat.addEventListener('connection', (connection) => {
+    const client = connection.client as MockClient;
     console.log('Mock WebSocket connected');
 
     client.addEventListener('message', (event) => {

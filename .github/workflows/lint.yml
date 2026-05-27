@@ -2,7 +2,7 @@ name: Lint
 
 on:
   push:
-    branches: [main, update-server-mangement]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -15,14 +15,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "21"
+          bun-version: latest
 
       - name: Install dependencies
         run: |
-          npm ci
+          bun install
 
       - name: Run ESLint
         run: |
-          npx eslint 'src/**/*.{ts,tsx,js,jsx}' --max-warnings=0
+          bun run lint
+      - name: Run tsc
+        run: |
+          bun tsc --noEmit

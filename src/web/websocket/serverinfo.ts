@@ -1,4 +1,3 @@
-import { Manager } from '@/manager';
 import { MessageType, type ReceiveMessage, type SendMessage } from './type';
 import { getServersInfo } from '../utils/serverUtilits';
 

@@ -23,7 +23,10 @@ export class ResourceMonitor {
 
         allServerPod.items.forEach((pod) => {
           const podName = pod.metadata?.name;
-          const serverName = pod.metadata?.labels?.name || podName;
+          const podLabels = pod.metadata?.labels as
+            | Record<string, string>
+            | undefined;
+          const serverName = podLabels?.name || podName;
           if (!podName || !serverName) {
             return;
           }
@@ -47,9 +50,13 @@ export class ResourceMonitor {
           if (!podName) {
             return;
           }
+          const podMetricLabels =
+            podMetric.metadata as
+              | (typeof podMetric.metadata & { labels?: Record<string, string> })
+              | undefined;
           const serverName =
             podNameToServerName.get(podName) ||
-            podMetric.metadata?.labels?.name ||
+            podMetricLabels?.labels?.name ||
             podName;
           const existingData = nextPodData.get(serverName);
           if (!existingData) {

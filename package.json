@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "preview": "bun --hot src/preview.ts",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" && tsc --noEmit",
     "start": "NODE_ENV=production bun src/index.ts",
     "build:gh-pages": "bun run build.ts",
     "cluster:create": "kind create cluster --config kind-config.yaml",
@@ -38,13 +38,14 @@
     "@types/bun": "latest",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "bun-plugin-auto-imports": "^0.3.1",
     "bun-plugin-tailwind": "^0.1.2",
-    "msw": "^2.14.6",
     "eslint": "^8.57.1",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "eslint-plugin-react": "^7.37.5"
+    "eslint-plugin-react": "^7.37.5",
+    "msw": "^2.14.6",
+    "typescript": "^6.0.3"
   },
   "msw": {
     "workerDirectory": [

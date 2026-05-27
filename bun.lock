@@ -37,6 +37,7 @@
         "eslint": "^8.57.1",
         "eslint-plugin-react": "^7.37.5",
         "msw": "^2.14.6",
+        "typescript": "^6.0.3",
       },
     },
   },

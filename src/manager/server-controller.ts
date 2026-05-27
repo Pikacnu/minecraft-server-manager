@@ -2,22 +2,6 @@ import { Rcon } from 'rcon-client';
 
 import { RCONPassword } from '@/utils/config';
 
-enum MessageTypeEnum {
-  AUTH = 'auth',
-  END = 'end',
-  RESPONSE = 'response',
-  SERVER = 'server',
-  ERROR = 'error',
-}
-
-type MessageType = MessageTypeEnum[keyof MessageTypeEnum];
-
-type Message = {
-  timestamp: number;
-  content: string;
-  type: MessageType;
-};
-
 export class ServerController {
   private rconClient: Rcon;
   private host: string;
@@ -29,7 +13,7 @@ export class ServerController {
   private shouldReconnect: boolean = true;
   private isConnectionListenerRegistered: boolean = false;
 
-  constructor(host: string, port: number, log = false) {
+  constructor(host: string, port: number) {
     this.host = host;
     this.port = port;
     this.rconClient = new Rcon({

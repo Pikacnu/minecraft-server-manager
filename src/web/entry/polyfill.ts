@@ -7,6 +7,8 @@ const globalWithProcess = globalThis as typeof globalThis & {
 };
 
 if (typeof globalWithProcess.process === 'undefined') {
-  globalWithProcess.process = { env: {} };
+  globalWithProcess.process = {
+    env: {},
+  } as unknown as NodeJS.Process;
 }
 export {};

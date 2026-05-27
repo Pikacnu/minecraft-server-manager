@@ -88,7 +88,7 @@ export class Manager {
         const servicesName = obj.metadata!.name!;
         const metadata = obj.metadata!;
         const labels = metadata.labels || {};
-        const serverName = labels?.name! || servicesName;
+        const serverName = labels.name || servicesName;
         const currentResourceVersion = obj.metadata!.resourceVersion!;
         const existingServer = this.servers.get(serverName);
         if (existingServer) {
@@ -311,7 +311,7 @@ export class Manager {
         );
       },
     );
-    const gateWatcherFunction = async () => {
+    const gateWatcherFunction = async (): Promise<void> => {
       try {
         const servers = ((await gateClient.listServers({})) ?? { servers: [] })
           .servers;
@@ -332,7 +332,7 @@ export class Manager {
       } catch (error) {
         console.error('Error updating server player counts:', error);
       } finally {
-        return setTimeout(gateWatcherFunction, 15000);
+        this.gateServerWatcher = setTimeout(gateWatcherFunction, 15000);
       }
     };
 
@@ -486,7 +486,6 @@ export class Manager {
       const controller = new ServerController(
         isDevelopment ? 'localhost' : address,
         25575,
-        true,
       );
       if (controller) {
         await controller.connect();
@@ -570,7 +569,6 @@ export class Manager {
     const controller = new ServerController(
       isDevelopment ? 'localhost' : address,
       25575,
-      true,
     );
     if (!controller) {
       console.error(`Failed to create ServerController for ${serverName}.`);

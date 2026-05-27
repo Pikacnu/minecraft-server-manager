@@ -207,7 +207,7 @@ async function POST(request: Request): Promise<Response> {
 }
 
 // Get Gate configuration
-async function PATCH(request: Request): Promise<Response> {
+async function PATCH(_request: Request): Promise<Response> {
   try {
     const gateConfig = (await getConfigMapData(
       Namespace,

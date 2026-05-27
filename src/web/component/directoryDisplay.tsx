@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { Editor } from '@monaco-editor/react';
+import type { ConfirmDialogOptions } from '../contexts/confirmDialog';
 
 enum FileCreatingState {
   None,
@@ -57,7 +58,7 @@ export default function DirectoryDisplay({
   onFileSelect: (fileName: string) => void;
   onCompress: (path: string, files: string[]) => void;
   onUncompress: (path: string, zipFile: string) => void;
-  showConfirmDialog?: (options: any) => Promise<boolean>;
+  showConfirmDialog?: (options: ConfirmDialogOptions) => Promise<boolean>;
 }) {
   const [path, setPath] = useState<string[]>(currentPath);
   const [isOpenFile, setIsOpenFile] = useState<boolean>(false);
@@ -76,7 +77,7 @@ export default function DirectoryDisplay({
   const renameRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [currentDirectory, setCurrentDirectory] = useMemo(() => {
+  const [currentDirectory] = useMemo(() => {
     let dir = fileStructure;
     for (const segment of path) {
       if (
@@ -94,7 +95,7 @@ export default function DirectoryDisplay({
         dir = nextDir;
       }
     }
-    return [dir, setPath] as const;
+    return [dir] as const;
   }, [fileStructure, path]);
 
   const handleNavigate = (name: string) => {
