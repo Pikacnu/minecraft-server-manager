@@ -28,7 +28,7 @@ let gateClientWarped: {
 gateClient = createClient(GateService, transport);
 
 gateClientWarped = Object.fromEntries(
-  Object.entries(gateClient!).map(([methodName, method], index) => {
+  Object.entries(gateClient!).map(([methodName, method], _index) => {
     return [
       methodName,
       async (...args: any[]) => {

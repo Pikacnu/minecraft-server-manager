@@ -1,6 +1,7 @@
 import { deployService } from './utils/k8s';
 import { webServer } from '@/web/index';
 import { Manager } from './manager';
+import { ResourceMonitor } from './manager/resource-monitor';
 import { SystemRequiredDeployments } from './deployment/system';
 import { defaultFilter, FileControllerManager } from './manager/file-manager';
 import { DomainManager } from './manager/domain-manager';
@@ -13,7 +14,6 @@ import {
   WildCardDomainPrefix,
   ZoneID,
 } from './utils/config';
-import { gateClient } from './utils/gate';
 import { gateDeployment } from './deployment/gate';
 const env = process.env;
 const port = env.PORT ? parseInt(env.PORT) : 3000;
@@ -27,6 +27,9 @@ try {
 
   // Initialize the Server Manager
   Manager.getInstance();
+
+  // Start collecting pod resource metrics in the background.
+  ResourceMonitor.getInstance();
 
   // Initialize the File Controller Manager
   await FileControllerManager.initialize('', {
@@ -82,7 +85,7 @@ function exitHandler() {
 
 process.on('exit', (code) => {
   console.log(`Process exiting with code: ${code}`);
-  Manager.cleanup();
+  exitHandler();
 });
 
 process.on('unhandledRejection', (reason, promise) => {

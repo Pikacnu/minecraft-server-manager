@@ -2,7 +2,7 @@ import { FileControllerManager } from '@/manager/file-manager';
 import { DirectoryType, type DirectoryStructure } from '@/utils/type';
 import archiver from 'archiver';
 import * as unzipper from 'unzipper';
-import { lstatSync, existsSync, mkdirSync, createReadStream } from 'node:fs';
+import { lstatSync, existsSync, mkdirSync } from 'node:fs';
 
 function normalizeFileStructure(
   fileStructure: Record<string, string | Record<string, string>>,

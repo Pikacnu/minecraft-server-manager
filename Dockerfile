@@ -8,6 +8,12 @@ RUN bun install --frozen-lockfile
 # Copy source code
 COPY . .
 
+# Run lint during build to prevent type/syntax errors from slipping into image
+RUN bun run lint
+
+# Run tsc to ensure all TypeScript files compile correctly
+RUN bun run tsc --noEmit
+
 # Set environment to production
 ENV NODE_ENV=production
 

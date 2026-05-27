@@ -1,6 +1,6 @@
 import { ManagerMountPath, LocalMountPath } from '@/utils/config';
 import { join, relative, resolve, normalize, isAbsolute } from 'node:path';
-import { file, Glob } from 'bun';
+import { Glob } from 'bun';
 import { lstat, mkdir, rmdir, exists, rename, rm } from 'node:fs/promises';
 import { createWriteStream, createReadStream } from 'node:fs';
 import { Writable, Readable } from 'stream';
@@ -255,7 +255,6 @@ export class FileController {
     if (!this.directorySet.has(dirPath)) {
       throw new Error('Directory does not exist.');
     }
-    const segments = normalize(dirPath).split(/\/|\\/);
     if (!recursive) {
       const currentLevel = this.getFileStructure(dirPath);
       if (Object.keys(currentLevel).length > 0) {

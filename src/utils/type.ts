@@ -992,10 +992,7 @@ export const FIELDS_BY_CATEGORY: [string, FieldDefinition[]][] = Object.entries(
   FIELD_DEFINITIONS.reduce(
     (acc, field) => {
       const category = field.category;
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(field);
+      (acc[category] ??= []).push(field);
       return acc;
     },
     {} as Record<string, FieldDefinition[]>,

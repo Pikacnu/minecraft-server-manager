@@ -1,7 +1,7 @@
 import { getServersInfo } from '../utils/serverUtilits';
 import { type ServerInfo } from '../contexts/servers';
 
-export async function GET(request: Request): Promise<Response> {
+export async function GET(_request: Request): Promise<Response> {
   const servers = getServersInfo();
 
   if (!servers) {

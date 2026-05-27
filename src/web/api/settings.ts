@@ -16,7 +16,7 @@ import {
 } from '@/utils/config';
 
 // Return current system settings
-async function GET(request: Request): Promise<Response> {
+async function GET(_request: Request): Promise<Response> {
   try {
     const settings = {
       // Read-only ENV settings (require restart to change)

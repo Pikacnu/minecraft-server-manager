@@ -1,7 +1,10 @@
 import {
   AppsV1Api,
   CoreV1Api,
+  Exec,
   KubeConfig,
+  Log,
+  Metrics,
   V1ConfigMap,
   V1Deployment,
   V1Pod,
@@ -12,7 +15,6 @@ import type { ServicesDeployments } from './type';
 import { Namespace } from './config';
 import { spawn } from 'child_process';
 import * as yaml from 'js-yaml';
-import { fetch } from 'bun';
 
 const kubeConfig = new KubeConfig();
 
@@ -99,6 +101,9 @@ if (process.env.KUBERNETES_SERVICE_HOST) {
 
 export const coreV1Api = kubeConfig.makeApiClient(CoreV1Api);
 export const appsV1Api = kubeConfig.makeApiClient(AppsV1Api);
+export const k8sLogger = new Log(kubeConfig);
+export const k8sMetrics = new Metrics(kubeConfig);
+export const k8sExec = new Exec(kubeConfig);
 export default kubeConfig;
 
 export enum k8sApiEndpoint {
@@ -201,7 +206,7 @@ function k8sErrorHandler(error: any, fields?: string[]) {
       const bodyObj = JSON.parse(body);
       console.error(
         `Kubernetes API Error - Code: ${code},\n${Object.entries(bodyObj)
-          .filter(([key, value]) => value !== undefined && value !== null)
+          .filter(([_, value]) => value !== undefined && value !== null)
           .filter(([key]) => (fields ? fields.includes(key) : true))
           .map(([key, value]) => `${key}: ${value}`)
           .join('\n')}`,
@@ -270,11 +275,7 @@ export async function checkGeneratedResourceExtsts(
   namespace = Namespace,
   resourceType: k8sApiEndpoint,
   resourcePrefix: string,
-  resourceLabel?: [string, string][],
 ) {
-  const labelSelector = resourceLabel
-    ? resourceLabel.map(([key, value]) => `${key}=${value}`).join(',')
-    : '';
   let resources;
   try {
     switch (resourceType) {
@@ -1040,3 +1041,11 @@ export async function patchService(
     throw err;
   }
 }
+
+export type PodData = {
+  cpu: string;
+  memory: string;
+  allocatedCpu: string;
+  allocatedMemory: string;
+  name: string;
+};

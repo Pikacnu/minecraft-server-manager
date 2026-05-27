@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState, useContext, createContext } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  createContext,
+  useCallback,
+} from 'react';
 import {
   MessageType,
+  receiveMessageSchema,
   type ReceiveMessage,
   type SendMessage,
 } from '../websocket/type';
@@ -23,6 +31,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     (ReceiveMessage & { id: string }) | null
   >(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const shouldReconnectRef = useRef<boolean>(true);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   const setupWebSocket = () => {
     const ws = new WebSocket(`ws://${window.location.host}/api/websocket`);
@@ -32,18 +42,21 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     ws.onclose = () => {
       console.log('WebSocket connection closed, attempting to reconnect...');
       setWebsocket(null);
-      setTimeout(setupWebSocket, 5000); // Reconnect after 5 seconds
+      if (!shouldReconnectRef.current) {
+        return;
+      }
+      reconnectTimerRef.current = window.setTimeout(setupWebSocket, 5000); // Reconnect after 5 seconds
     };
     ws.onmessage = (event) => {
       try {
-        const parsedMessage = JSON.parse(event.data) as ReceiveMessage;
-        if (
-          !Object.keys(parsedMessage).length ||
-          ['type', 'payload'].some((key) => !(key in parsedMessage))
-        ) {
+        const parsedResult = receiveMessageSchema.safeParse(
+          JSON.parse(event.data),
+        );
+        if (!parsedResult.success) {
           console.error('Invalid WebSocket message format:', event.data);
           return;
         }
+        const parsedMessage = parsedResult.data as ReceiveMessage;
         if (parsedMessage.type === MessageType.HEARTBEAT) {
           setTimeout(() => {
             ws.send(
@@ -68,21 +81,26 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
+    shouldReconnectRef.current = true;
     wsRef.current = setupWebSocket();
     return () => {
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
   }, []);
 
-  const sendMessage = (message: SendMessage) => {
+  const sendMessage = useCallback((message: SendMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
       console.error('WebSocket is not open. Unable to send message.');
     }
-  };
+  }, []);
 
   return (
     <WebSocketContext.Provider value={{ websocket, sendMessage, message }}>

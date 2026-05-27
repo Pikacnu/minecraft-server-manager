@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw';
+import { z } from 'zod';
 
 const mockSystemSettings = {
   readOnly: {
@@ -80,6 +81,13 @@ const mockGateStatus = {
   conditions: [],
 };
 
+const serverManageBodySchema = z
+  .object({
+    action: z.string().optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
 export const handlers = [
   http.get('/api/settings', () => {
     return HttpResponse.json({
@@ -143,7 +151,15 @@ export const handlers = [
   }),
 
   http.post('/api/server-manage', async ({ request }) => {
-    const body = (await request.json()) as any;
+    const parsedBody = serverManageBodySchema.safeParse(await request.json());
+    if (!parsedBody.success) {
+      return HttpResponse.json(
+        { status: 'error', message: 'Invalid request body' },
+        { status: 400 },
+      );
+    }
+
+    const body = parsedBody.data;
     console.log('Mock Server Manage:', body);
     return HttpResponse.json({
       status: 'ok',

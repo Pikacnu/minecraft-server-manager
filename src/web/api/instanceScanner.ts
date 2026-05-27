@@ -21,7 +21,7 @@ function parseProperties(content: string) {
   return result;
 }
 
-export async function GET(request: Request): Promise<Response> {
+export async function GET(_request: Request): Promise<Response> {
   try {
     const controllers = FileControllerManager.listControllers();
     const findFilePath = (
