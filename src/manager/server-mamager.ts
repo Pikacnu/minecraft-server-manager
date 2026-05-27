@@ -514,6 +514,16 @@ export class Manager {
     return server.nameTemplate.replace('@PlaceHolder@', target);
   }
 
+  public static async getServerPodNameByServerName(
+    serverName: string,
+  ): Promise<string | undefined> {
+    if (!Manager.servers.has(serverName)) {
+      return undefined;
+    }
+    //const server = Manager.servers.get(serverName)!;
+    return await Manager.getCurrentServerPodName(serverName);
+  }
+
   private static async getCurrentServerPodName(
     serverName: string,
   ): Promise<string> {

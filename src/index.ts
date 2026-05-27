@@ -14,7 +14,6 @@ import {
   WildCardDomainPrefix,
   ZoneID,
 } from './utils/config';
-import { gateClient } from './utils/gate';
 import { gateDeployment } from './deployment/gate';
 const env = process.env;
 const port = env.PORT ? parseInt(env.PORT) : 3000;
@@ -86,7 +85,7 @@ function exitHandler() {
 
 process.on('exit', (code) => {
   console.log(`Process exiting with code: ${code}`);
-  Manager.cleanup();
+  exitHandler();
 });
 
 process.on('unhandledRejection', (reason, promise) => {

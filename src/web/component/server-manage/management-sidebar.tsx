@@ -1,4 +1,9 @@
-import { FolderOpen, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
+import {
+  FolderOpen,
+  LayoutDashboard,
+  SlidersHorizontal,
+  Terminal,
+} from 'lucide-react';
 import { type PodData } from '@/utils/k8s';
 import { ManagementSection } from './types';
 
@@ -15,14 +20,14 @@ type ServerOption = {
 };
 
 export default function ManagementSidebar({
-  server,
+  //server,
   serverOptions,
   selectedServerId,
   onSelectServer,
   activeSection,
   setActiveSection,
-  resourceData,
-  isRefreshingDiagnostics,
+  //resourceData,
+  //isRefreshingDiagnostics,
 }: {
   server: ServerSummary;
   serverOptions: ServerOption[];
@@ -78,6 +83,14 @@ export default function ManagementSidebar({
         >
           <FolderOpen className='h-4 w-4' />
           <span className='block font-medium'>Files</span>
+        </button>
+
+        <button
+          className={sectionButtonClass(ManagementSection.Terminal)}
+          onClick={() => setActiveSection(ManagementSection.Terminal)}
+        >
+          <Terminal className='h-4 w-4' />
+          <span className='block font-medium'>Terminal</span>
         </button>
 
         <button

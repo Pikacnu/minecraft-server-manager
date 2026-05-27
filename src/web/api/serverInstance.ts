@@ -1,4 +1,3 @@
-import { minecraftServerDeployment } from '@/deployment/minecraft-server';
 import { Manager } from '@/manager';
 import { FileControllerManager, FileController } from '@/manager/file-manager';
 import { Namespace } from '@/utils/config';
@@ -7,7 +6,6 @@ import {
   patchDeployment,
   patchService,
   patchENVConfigMap,
-  updateEnvConfigMap,
 } from '@/utils/k8s';
 import {
   MinecraftServerType,

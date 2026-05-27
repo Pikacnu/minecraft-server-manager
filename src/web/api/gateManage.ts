@@ -19,12 +19,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isDeepEqual(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
 // Get Gate deployment status
-async function GET(request: Request): Promise<Response> {
+async function GET(_request: Request): Promise<Response> {
   try {
     const deployment = await getDeploymentData(
       'gate-server-deployment',

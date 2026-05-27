@@ -2,7 +2,7 @@ import {
   ChartNoAxesGantt,
   FileText,
   HardDrive,
-  RefreshCcw,
+  //RefreshCcw,
 } from 'lucide-react';
 import { type PodData } from '@/utils/k8s';
 import Rcon from '../rcon';

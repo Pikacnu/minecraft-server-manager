@@ -14,7 +14,7 @@ import {
   PackageOpen,
   FolderArchive,
 } from 'lucide-react';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Editor } from '@monaco-editor/react';
 
 enum FileCreatingState {

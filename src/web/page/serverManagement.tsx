@@ -10,6 +10,7 @@ import { useConfirmDialog } from '../contexts/confirmDialog';
 import { NotificationType } from '../utils/enums';
 import ManagementSidebar from '../component/server-manage/management-sidebar';
 import ManagementOverview from '../component/server-manage/management-overview';
+import ManagementTerminal from '../component/server-manage/management-terminal';
 import ManagementFilesPanel from '../component/server-manage/management-files-panel';
 import ManagementSettings from '../component/server-manage/management-settings';
 import { ManagementSection } from '../component/server-manage/types';
@@ -303,6 +304,13 @@ export default function ServerManagement() {
                 diagnosticError={diagnosticError}
                 isRefreshingDiagnostics={isRefreshingDiagnostics}
                 playerCount={currentServer?.playersOnline ?? null}
+              />
+            )}
+
+            {activeSection === ManagementSection.Terminal && (
+              <ManagementTerminal
+                serverName={currentServer?.name || currentSelectedServerId || ''}
+                alwaysOpen={true}
               />
             )}
 

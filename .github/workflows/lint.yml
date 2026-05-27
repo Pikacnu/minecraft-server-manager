@@ -1,0 +1,28 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main, update-server-mangement ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  eslint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          npx eslint 'src/**/*.{ts,tsx,js,jsx}' --max-warnings=0

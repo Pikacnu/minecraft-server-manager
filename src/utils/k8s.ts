@@ -206,7 +206,7 @@ function k8sErrorHandler(error: any, fields?: string[]) {
       const bodyObj = JSON.parse(body);
       console.error(
         `Kubernetes API Error - Code: ${code},\n${Object.entries(bodyObj)
-          .filter(([key, value]) => value !== undefined && value !== null)
+          .filter(([_, value]) => value !== undefined && value !== null)
           .filter(([key]) => (fields ? fields.includes(key) : true))
           .map(([key, value]) => `${key}: ${value}`)
           .join('\n')}`,
@@ -275,11 +275,7 @@ export async function checkGeneratedResourceExtsts(
   namespace = Namespace,
   resourceType: k8sApiEndpoint,
   resourcePrefix: string,
-  resourceLabel?: [string, string][],
 ) {
-  const labelSelector = resourceLabel
-    ? resourceLabel.map(([key, value]) => `${key}=${value}`).join(',')
-    : '';
   let resources;
   try {
     switch (resourceType) {

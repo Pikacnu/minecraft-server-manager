@@ -1,10 +1,15 @@
-import { file, serve } from 'bun';
+import { serve } from 'bun';
 import index from '#/entry/index.html';
-import serverInfo from './api/serverInfo';
+//import serverInfo from './api/serverInfo';
 import instanceScanner from './api/instanceScanner';
 import serverManage from './api/serverManage';
-import { MessageType, type SendMessage } from './websocket/type';
+import {
+  MessageType,
+  sendMessageSchema,
+  type SendMessage,
+} from './websocket/type';
 import { rconHandler } from './websocket/rcon';
+import { closeTrackedExecSessions, execHandler } from './websocket/exec.ts';
 import serverInstance from './api/serverInstance';
 import fileSystem from './api/fileSystem';
 import gateManage from './api/gateManage';
@@ -27,6 +32,7 @@ export type WebServerArguments = Partial<
 type WebSocketConnectionData = {
   connectionId: string;
   logSubscriptions: Set<string>;
+  execSessions: Set<string>;
 };
 
 export const webServer = async (args?: WebServerArguments) => {
@@ -48,13 +54,14 @@ export const webServer = async (args?: WebServerArguments) => {
     fetch: async (request, server) => {
       const url = new URL(request.url);
       const pathname = url.pathname;
-      const searchParams = url.searchParams;
+      //const searchParams = url.searchParams;
 
       if (pathname === '/api/websocket') {
         const isUpgraded = server.upgrade(request, {
           data: {
             connectionId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
             logSubscriptions: new Set<string>(),
+            execSessions: new Set<string>(),
           },
         });
         if (isUpgraded) {
@@ -66,22 +73,22 @@ export const webServer = async (args?: WebServerArguments) => {
       return new Response(`404 Not Found`, { status: 404 });
     },
     websocket: {
-      open(ws) {
+      open(_ws) {
         //console.log('WebSocket connection opened');
       },
       message(ws, message) {
         try {
-          const parsedMessage = JSON.parse(message.toString()) as SendMessage;
-          if (
-            !Object.keys(parsedMessage).length ||
-            ['type', 'payload'].some((key) => !(key in parsedMessage))
-          ) {
+          const parsedResult = sendMessageSchema.safeParse(
+            JSON.parse(message.toString()),
+          );
+          if (!parsedResult.success) {
             console.error(
               'Invalid WebSocket message format:',
               message.toString(),
             );
             return;
           }
+          const parsedMessage = parsedResult.data as SendMessage;
 
           switch (parsedMessage.type) {
             case MessageType.HEARTBEAT:
@@ -100,6 +107,24 @@ export const webServer = async (args?: WebServerArguments) => {
                 },
               );
               break;
+            case MessageType.EXEC: {
+              const connectionData = ws.data;
+              void execHandler(
+                parsedMessage as SendMessage<MessageType.EXEC>,
+                (
+                  responseMessage: Parameters<typeof ws.send>[0] extends string
+                    ? never
+                    : unknown,
+                ) => {
+                  ws.send(JSON.stringify(responseMessage));
+                },
+                connectionData.connectionId,
+                (sessionId: string) => {
+                  connectionData.execSessions.add(sessionId);
+                },
+              );
+              break;
+            }
             case MessageType.SERVERINFO:
               serverInfoHandler(
                 parsedMessage as SendMessage<MessageType.SERVERINFO>,
@@ -132,12 +157,15 @@ export const webServer = async (args?: WebServerArguments) => {
           console.error('Error parsing WebSocket message:', error);
         }
       },
-      async close(ws, code, reason) {
+      async close(ws, _code, _reason) {
         const connectionData = ws.data;
         if (connectionData.logSubscriptions?.size) {
           await closeTrackedLogSubscriptions(
             connectionData.logSubscriptions.values(),
           );
+        }
+        if (connectionData.execSessions?.size) {
+          await closeTrackedExecSessions(connectionData.execSessions.values());
         }
         //console.log(`WebSocket connection closed: ${code} - ${reason}`);
       },

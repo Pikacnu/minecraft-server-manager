@@ -26,36 +26,34 @@ export default function Rcon({
 
   const handleSendCommand = () => {
     if (inputCommand.trim() === '') return;
+    const cmd = inputCommand.trim();
+    appendOutput(`> ${cmd}`);
     sendMessage({
       type: MessageType.RCON,
       payload: {
-        command: inputCommand,
+        command: cmd,
         serverName,
       },
     });
-    appendOutput(`> ${inputCommand}`);
     setInputCommand('');
   };
 
   useEffect(() => {
-    if (
-      message &&
-      messageIdRef.current !== message?.id &&
-      message?.type === MessageType.RCON
-    ) {
-      const rconPayload = message.payload as {
+    if (message && messageIdRef.current !== message.id && message.type === MessageType.RCON) {
+      const payload = message.payload as {
         status: string;
-        response: string;
+        response?: string;
+        message?: string;
         serverName: string;
       };
-      if (
-        rconPayload.status === 'ok' &&
-        rconPayload.response !== undefined &&
-        rconPayload.serverName === serverName
-      ) {
-        appendOutput(`< ${rconPayload.response}`);
+      if (payload.serverName === serverName) {
+        if (payload.status === 'ok') {
+          appendOutput(payload.response ?? '');
+        } else {
+          appendOutput(`[rcon] ${payload.message ?? 'RCON error.'}`);
+        }
       }
-      messageIdRef.current = message?.id || '';
+      messageIdRef.current = message.id || '';
     }
   }, [message, serverName]);
 
@@ -72,7 +70,7 @@ export default function Rcon({
           onClick={() => setIsOpen(true)}
           className=' self-start p-4 w-full flex gap-2'
         >
-          <ChevronDown /> RCON Terminal
+          <ChevronDown /> RCON
         </button>
       ) : (
         <>
@@ -81,7 +79,7 @@ export default function Rcon({
               onClick={() => setIsOpen(false)}
               className='p-4 w-full flex gap-2'
             >
-              <ChevronUp /> RCON Terminal
+              <ChevronUp /> RCON
             </button>
           )}
           <div className='grid min-h-0 grow grid-rows-[minmax(0,1fr)_auto] gap-2'>
@@ -89,7 +87,7 @@ export default function Rcon({
               ref={terminalRef}
               className='min-h-0 w-full overflow-y-auto rounded-lg bg-black p-2 font-mono text-sm text-white whitespace-pre-wrap wrap-break-word'
             >
-              {output || 'No RCON output yet.'}
+              {output || 'No rcon output yet.'}
             </pre>
             <div className='mt-2 flex min-w-0 items-center gap-2'>
               <input
