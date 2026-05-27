@@ -50,10 +50,9 @@ export class ResourceMonitor {
           if (!podName) {
             return;
           }
-          const podMetricLabels =
-            podMetric.metadata as
-              | (typeof podMetric.metadata & { labels?: Record<string, string> })
-              | undefined;
+          const podMetricLabels = podMetric.metadata as
+            | (typeof podMetric.metadata & { labels?: Record<string, string> })
+            | undefined;
           const serverName =
             podNameToServerName.get(podName) ||
             podMetricLabels?.labels?.name ||
