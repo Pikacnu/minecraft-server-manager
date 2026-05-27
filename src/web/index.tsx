@@ -30,7 +30,7 @@ type WebSocketConnectionData = {
 };
 
 export const webServer = async (args?: WebServerArguments) => {
-  const server = serve({
+  const server = serve<WebSocketConnectionData>({
     idleTimeout: 120,
     routes: {
       // Serve index.html for all unmatched routes in development.
@@ -109,7 +109,7 @@ export const webServer = async (args?: WebServerArguments) => {
               );
               break;
             case MessageType.SERVERLOG: {
-              const connectionData = ws.data as WebSocketConnectionData;
+              const connectionData = ws.data;
               void serverLogHandler(
                 parsedMessage as SendMessage<MessageType.SERVERLOG>,
                 (responseMessage) => {
@@ -133,7 +133,7 @@ export const webServer = async (args?: WebServerArguments) => {
         }
       },
       async close(ws, code, reason) {
-        const connectionData = ws.data as WebSocketConnectionData;
+        const connectionData = ws.data;
         if (connectionData.logSubscriptions?.size) {
           await closeTrackedLogSubscriptions(
             connectionData.logSubscriptions.values(),
@@ -150,7 +150,7 @@ export const webServer = async (args?: WebServerArguments) => {
       console: false,
     },
     ...args,
-  } as Parameters<typeof serve>[0]);
+  } as Parameters<typeof serve<WebSocketConnectionData>>[0]);
   return server;
 };
 

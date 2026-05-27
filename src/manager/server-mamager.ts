@@ -647,7 +647,12 @@ export class Manager {
       name: podName,
       tailLines: lines,
     });
-    return logsResponse.body;
+    try {
+      return await logsResponse.body.text();
+    } catch (error) {
+      console.error(`Failed to read logs for server ${serverName}:`, error);
+      throw new Error(`Failed to read logs for server ${serverName}`);
+    }
   }
 
   public static async getFollowedServerLogs(
@@ -659,16 +664,10 @@ export class Manager {
     }
     const podName = await this.getCurrentServerPodName(serverName);
     const logStream = new PassThrough();
-    k8sLogger.log(
-      Namespace,
-      podName,
-      'minecraft-server',
-      logStream,
-      {
-        follow: true,
-        pretty: true,
-      },
-    );
+    k8sLogger.log(Namespace, podName, 'minecraft-server', logStream, {
+      follow: true,
+      pretty: true,
+    });
     return logStream;
   }
 
