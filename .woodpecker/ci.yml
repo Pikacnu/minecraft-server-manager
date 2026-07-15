@@ -27,6 +27,7 @@ steps:
     when:
       - event: push
         branch: main
+      - event: tag
 
   - name: discord-success
     image: appleboy/drone-discord
