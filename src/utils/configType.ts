@@ -6,16 +6,15 @@ const GATE_CONFIG_URL =
 
 const yamlTextRes = await fetch(GATE_CONFIG_URL);
 if (!yamlTextRes.ok) {
-  throw new Error(
-    `Failed to fetch Gate config YAML: ${yamlTextRes.status}`,
-  );
+  throw new Error(`Failed to fetch Gate config YAML: ${yamlTextRes.status}`);
 }
 
 const yamlText = await yamlTextRes.text();
 
-export const rawConfig: Record<string, unknown> = yaml.load(
-  yamlText,
-) as Record<string, unknown>;
+export const rawConfig: Record<string, unknown> = yaml.load(yamlText) as Record<
+  string,
+  unknown
+>;
 
 export type InferredValueType =
   | 'string'

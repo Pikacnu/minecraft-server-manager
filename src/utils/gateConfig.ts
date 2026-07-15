@@ -505,11 +505,16 @@ export function getFieldMetadata(path: string): FieldMetadata | undefined {
 
   const type: FieldMetadata['type'] = (() => {
     switch (entry.type) {
-      case 'string': return 'string';
-      case 'number': return 'number';
-      case 'boolean': return 'boolean';
-      case 'array': return 'array';
-      default: return 'object';
+      case 'string':
+        return 'string';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'array':
+        return 'array';
+      default:
+        return 'object';
     }
   })();
 
@@ -599,7 +604,8 @@ export function getAvailableFieldSuggestions(path: string): FieldSuggestion[] {
     const directPath = `${normalizedPath}.${key}`;
     if (isReadOnlyField(directPath)) return;
 
-    const metadata = getFieldMetadata(directPath) ??
+    const metadata =
+      getFieldMetadata(directPath) ??
       createFallbackObjectMetadata(key, paths.length);
 
     suggestions.push({

@@ -13,10 +13,13 @@ console.log('Building CSS...');
 await $`./node_modules/.bin/tailwindcss -i ./tailwind.css -o ${CSS} --minify`.quiet();
 
 const originalHtml = await Bun.file(HTML).text();
-await Bun.write(HTML, originalHtml.replace(
-  '<link rel="stylesheet" href="tailwindcss" />',
-  '<link rel="stylesheet" href="./index.css" />',
-));
+await Bun.write(
+  HTML,
+  originalHtml.replace(
+    '<link rel="stylesheet" href="tailwindcss" />',
+    '<link rel="stylesheet" href="./index.css" />',
+  ),
+);
 
 try {
   console.log('Compiling standalone binary...');
