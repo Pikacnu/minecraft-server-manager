@@ -14,7 +14,8 @@ steps:
     settings:
       registry:
         from_secret: DOCKER_REGISTRY
-      repo: minecraft-server-manager
+      repo:
+        from_secret: IMAGE_NAME
       tags:
         - latest
         - ${CI_COMMIT_TAG:-${CI_COMMIT_SHA}}
