@@ -21,10 +21,8 @@ steps:
       context: .
       build-args:
         NODE_ENV: production
-      username:
-        from_secret: DOCKER_USERNAME
-      password:
-        from_secret: DOCKER_PASSWORD
+      docker-config-json:
+        from_secret: docker-config-json
       cache: true
     when:
       - event: push
