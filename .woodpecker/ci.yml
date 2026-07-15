@@ -7,13 +7,16 @@ steps:
       exit-code: 1
       skip-dirs: vendor,node_modules
     when:
-      - event: [ push, pull_request ]
+      - event: [push, pull_request]
 
   - name: build-and-push
     image: woodpeckerci/plugin-kaniko
     settings:
-      repo: ${DOCKER_REGISTRY}/${IMAGE_NAME}
-      tags: ${WOODPECKER_COMMIT}
+      registry: ${DOCKER_REGISTRY}
+      repo: ${IMAGE_NAME}
+      tags:
+        - latest
+        - ${WOODPECKER_TAG:-${WOODPECKER_COMMIT}}
       dockerfile: Dockerfile
       context: .
       build-args:
@@ -42,7 +45,8 @@ steps:
         Commit: {{truncate build.commit 8}}
         Link: {{build.link}}
     when:
-      - status: [ success ]
+      - event: [push, pull_request, tag, deployment]
+        status: [success]
 
   - name: discord-failure
     image: appleboy/drone-discord
@@ -59,4 +63,5 @@ steps:
         Commit: {{truncate build.commit 8}}
         Link: {{build.link}}
     when:
-      - status: [ failure ]
+      - event: [push, pull_request, tag, deployment]
+        status: [failure]
