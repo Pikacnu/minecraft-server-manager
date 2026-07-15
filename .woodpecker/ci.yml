@@ -12,11 +12,14 @@ steps:
   - name: build-and-push
     image: woodpeckerci/plugin-kaniko
     settings:
-      registry: ${DOCKER_REGISTRY}
-      repo: ${IMAGE_NAME}
+      registry:
+        from_secret: DOCKER_REGISTRY
+      repo:
+        from_secret: IMAGE_NAME
       tags:
         - latest
-        - ${WOODPECKER_TAG:-${WOODPECKER_COMMIT}}
+        - ${CI_COMMIT_TAG:-${CI_COMMIT_SHA}}
+        - ${CI_COMMIT_TAG}
       dockerfile: Dockerfile
       context: .
       build-args:
@@ -27,7 +30,6 @@ steps:
     when:
       - event: push
         branch: main
-      - event: tag
 
   - name: discord-success
     image: appleboy/drone-discord
