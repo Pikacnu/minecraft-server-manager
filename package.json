@@ -9,6 +9,7 @@
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" && tsc --noEmit",
     "start": "NODE_ENV=production bun src/index.ts",
     "build:gh-pages": "bun run build.ts",
+    "build": "bun run scripts/build-standalone.ts",
     "cluster:create": "kind create cluster --config kind-config.yaml",
     "cluster:delete": "kind delete cluster --name minecraft-dev"
   },
@@ -18,13 +19,13 @@
     "@types/unzipper": "^0.10.11",
     "archiver": "^7.0.1",
     "cloudflare": "^5.2.0",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.3.0",
     "lucide-react": "^0.561.0",
     "rcon-client": "^4.2.5",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "tailwindcss": "^4.3.0",
-    "unzipper": "^0.12.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2",
+    "unzipper": "^0.12.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -34,9 +35,9 @@
     "@bufbuild/protobuf": "^1.10.1",
     "@connectrpc/connect-node": "^1.7.0",
     "@kubernetes/client-node": "^1.4.0",
-    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/cli": "^4.3.2",
     "@types/bun": "latest",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -44,7 +45,7 @@
     "bun-plugin-tailwind": "^0.1.2",
     "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.5",
-    "msw": "^2.14.6",
+    "msw": "^2.15.0",
     "typescript": "^6.0.3"
   },
   "msw": {

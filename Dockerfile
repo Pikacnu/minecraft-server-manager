@@ -1,21 +1,21 @@
-FROM oven/bun:latest AS base
+FROM oven/bun:latest AS builder
 WORKDIR /app
 
-# Install dependencies
 COPY package.json bun.lockb* bunfig.toml ./
 RUN bun install --frozen-lockfile
 
-# Copy source code
 COPY . .
-
-# Run lint during build to prevent type/syntax errors from slipping into image
 RUN bun run lint
 
-# Run tsc to ensure all TypeScript files compile correctly
-RUN bun run tsc --noEmit
+RUN bun run scripts/build-standalone.ts
 
-# Set environment to production
+FROM debian:stable-slim
+WORKDIR /app
+
+COPY --from=builder /app/dist/minecraft-server-manager /app/minecraft-server-manager
+
 ENV NODE_ENV=production
 
-# Start the application
-CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run start"]
+EXPOSE 3000
+
+CMD ["/app/minecraft-server-manager"]

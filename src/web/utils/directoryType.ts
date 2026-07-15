@@ -1,23 +1,22 @@
+import {
+  type DirectoryType as ZodDirectoryType,
+  type DirectoryStructure as ZodDirectoryStructure,
+} from '@/utils/schemas';
+
 export const DirectoryType = {
   File: 'file',
   Directory: 'directory',
 } as const;
 
-export type DirectoryType = (typeof DirectoryType)[keyof typeof DirectoryType];
-
+export type DirectoryType = ZodDirectoryType;
 export type DirectoryFileType = 'compressed' | 'textFile';
 
 export type DirectoryFile = {
   name: string;
-  format: typeof DirectoryType.File;
+  format: 'file';
   size: number;
   content?: string;
   fileType: DirectoryFileType;
 };
 
-export type DirectoryStructure = {
-  children?: DirectoryStructure[];
-  name: string;
-  type: DirectoryType;
-  file?: DirectoryFile;
-};
+export type DirectoryStructure = ZodDirectoryStructure;

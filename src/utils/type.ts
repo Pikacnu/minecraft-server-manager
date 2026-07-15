@@ -1,29 +1,12 @@
-import { appsV1Api, coreV1Api } from './k8s';
 import { getMinecraftVersions } from './minecraft';
-import type {
-  GeneralVariables,
-  ServerVariables,
-  ResourcePackVariables,
-  WhitelistVariables,
-  RconVariables,
-  AutoPauseVariables,
-  CurseForgeVariables,
-  ModrinthVariables,
-} from './minecraft-image-variable';
+import type { ServicesDeployments } from './schemas';
 
-export type ServicesDeployments = {
-  Services?: Array<Parameters<typeof coreV1Api.createNamespacedService>[0]>;
-  Deployments?: Array<
-    Parameters<typeof appsV1Api.createNamespacedDeployment>[0]
-  >;
-  ConfigMaps?: Array<Parameters<typeof coreV1Api.createNamespacedConfigMap>[0]>;
-  Secrets?: Array<Parameters<typeof coreV1Api.createNamespacedSecret>[0]>;
-  PVs?: Array<Parameters<typeof coreV1Api.createPersistentVolume>[0]>;
-  PVCs?: Array<
-    Parameters<typeof coreV1Api.createNamespacedPersistentVolumeClaim>[0]
-  >;
-  Namespace?: Array<Parameters<typeof coreV1Api.createNamespace>[0]>;
-};
+export type {
+  ServicesDeployments,
+  Variables,
+  MinecraftServerDeploymentsGeneratorArguments,
+  GateConfig,
+} from './schemas';
 
 export type ServicesDeplymentsGeneratorArguments = {
   name: string;
@@ -33,121 +16,11 @@ export type ServicesDeplymentsGenerator<T = unknown> = (
   args: ServicesDeplymentsGeneratorArguments & T,
 ) => ServicesDeployments;
 
-export type Variables = GeneralVariables &
-  ServerVariables &
-  ResourcePackVariables &
-  WhitelistVariables &
-  RconVariables &
-  AutoPauseVariables &
-  CurseForgeVariables &
-  ModrinthVariables;
-
 export enum MinecraftServerType {
   Vanilla = 'vanilla',
   Paper = 'paper',
   Fabric = 'fabric',
   Forge = 'forge',
-}
-
-export type MinecraftServerDeploymentsGeneratorArguments = {
-  memoryLimit?: number;
-  cpuLimit?: number;
-  type?: MinecraftServerType;
-  version?: string;
-  domain?: string;
-  Variables?: Variables;
-};
-
-export interface GateConfig {
-  config: {
-    bind: string;
-    onlineMode: boolean;
-    servers: Record<string, string>;
-    try: string[];
-    status?: {
-      motd?: string;
-      showMaxPlayers?: number;
-      favicon?: string;
-      logPingRequests?: boolean;
-      announceForge?: boolean;
-    };
-    acceptTransfers?: boolean;
-    bungeePluginChannelEnabled?: boolean;
-    builtinCommands?: boolean;
-    requireBuiltinCommandPermissions?: boolean;
-    announceProxyCommands?: boolean;
-    forceKeyAuthentication?: boolean;
-    shutdownReason: string;
-    compression?: {
-      threshold?: number;
-      level?: number;
-    };
-    connectionTimeout?: string;
-    readTimeout?: string;
-    failoverOnUnexpectedServerDisconnect?: boolean;
-    onlineModeKickExistingPlayers?: boolean;
-    debug?: boolean;
-    forwarding: {
-      mode: string;
-      velocitySecret?: string;
-      bungeeGuardSecret?: string;
-    };
-    proxyProtocol?: boolean;
-    forcedHosts: Record<string, string[]>;
-    quota?: {
-      connections?: {
-        enabled: boolean;
-        ops: number;
-        burst: number;
-        maxEntries: number;
-      };
-      logins?: {
-        enabled: boolean;
-        burst: number;
-        ops: number;
-        maxEntries: number;
-      };
-    };
-    query?: {
-      enabled: boolean;
-      port?: number;
-      showPlugins?: boolean;
-    };
-    auth?: {
-      sessionServerUrl?: string;
-    };
-    lite?: {
-      enabled: boolean;
-      routes?: Array<any>;
-    };
-    bedrock?: {
-      enabled: boolean;
-      geyserListenAddr?: string;
-      usernameFormat?: string;
-      floodgateKeyPath?: string;
-      managed?: {
-        enabled: boolean;
-        jarUrl?: string;
-        dataDir?: string;
-        javaPath?: string;
-        autoUpdate?: boolean;
-        extraArgs?: string[];
-        configOverrides?: Record<string, any>;
-      };
-    };
-    [key: string]: any;
-  };
-  connect?: {
-    enabled: boolean;
-    name?: string;
-    allowOfflineModePlayers?: boolean;
-  };
-  api: {
-    enabled: boolean;
-    bind: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
 }
 
 export enum FieldType {

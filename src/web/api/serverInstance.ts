@@ -9,9 +9,14 @@ import {
 } from '@/utils/k8s';
 import {
   MinecraftServerType,
-  type MinecraftServerDeploymentsGeneratorArguments,
   type Variables,
+  type MinecraftServerDeploymentsGeneratorArguments,
 } from '@/utils/type';
+import {
+  CreateServerRequestSchema,
+  DeleteServerRequestSchema,
+  PatchServerRequestSchema,
+} from '@/utils/schemas';
 
 const AutoStopKeys = [
   'ENABLE_AUTOSTOP',
@@ -22,21 +27,24 @@ const AutoStopKeys = [
 ] as const;
 
 export async function POST(request: Request): Promise<Response> {
-  const variable = (await request.json()) as Omit<
-    MinecraftServerDeploymentsGeneratorArguments,
-    'Variables'
-  > &
-    Variables;
-
-  const requiredFields = ['SERVER_NAME', 'version', 'type', 'memoryLimit'];
-  for (const field of requiredFields) {
-    if (!(field in variable) || !variable[field as keyof typeof variable]) {
-      return Response.json(
-        { status: 'error', message: `Missing required field: ${field}` },
-        { status: 400 },
-      );
-    }
+  const body = await request.json();
+  const parsed = CreateServerRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    const missing = parsed.error.issues
+      .filter((i) => i.message.includes('Required'))
+      .map((i) => i.path.join('.'));
+    return Response.json(
+      {
+        status: 'error',
+        message:
+          missing.length > 0
+            ? `Missing required fields: ${missing.join(', ')}`
+            : `Invalid request: ${parsed.error.issues[0]?.message}`,
+      },
+      { status: 400 },
+    );
   }
+  const variable = parsed.data as Record<string, any>;
   try {
     const variablesForCreate = Object.fromEntries(
       Object.entries(variable).filter(
@@ -101,15 +109,15 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 export async function DELETE(request: Request): Promise<Response> {
-  const { serverName } = (await request.json()) as {
-    serverName: string;
-  };
-  if (!serverName) {
+  const body = await request.json();
+  const parsed = DeleteServerRequestSchema.safeParse(body);
+  if (!parsed.success) {
     return Response.json(
       { status: 'error', message: 'Missing required field: serverName' },
       { status: 400 },
     );
   }
+  const { serverName } = parsed.data;
   try {
     await Manager.deleteServer(serverName);
   } catch (error) {
@@ -134,16 +142,15 @@ const ShouldntBeChanged = [
 ];
 
 export async function PATCH(request: Request): Promise<Response> {
-  const { serverName, variables } = (await request.json()) as {
-    serverName: string;
-    variables: Partial<Variables>;
-  };
-  if (!serverName) {
+  const body = await request.json();
+  const parsed = PatchServerRequestSchema.safeParse(body);
+  if (!parsed.success) {
     return Response.json(
       { status: 'error', message: 'Missing required field: serverName' },
       { status: 400 },
     );
   }
+  const { serverName, variables } = parsed.data;
   try {
     const configMapData = await getConfigMapData(
       Namespace,

@@ -8,15 +8,9 @@ import {
 } from 'react';
 import { useWebSocket } from './websocket';
 import { MessageType, type ReceiveMessage } from '../websocket/type';
+import type { ServerInfo } from '@/utils/schemas';
 
-export type ServerInfo = {
-  id: string;
-  name: string;
-  status: string;
-  domain?: string;
-  address: string;
-  playersOnline: number;
-};
+export type { ServerInfo };
 const ServerContext = createContext<{
   serverInfo: ServerInfo[];
   setServerInfo: Dispatch<SetStateAction<ServerInfo[]>>;

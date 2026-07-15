@@ -1,13 +1,19 @@
 import { Manager } from '@/manager';
+import { ServerManageRequestSchema } from '@/utils/schemas';
 
 export async function POST(request: Request): Promise<Response> {
-  const {
-    action,
-    serverName,
-  }: {
-    action: 'restart' | 'stop' | 'delete';
-    serverName: string;
-  } = await request.json();
+  const body = await request.json();
+  const parsed = ServerManageRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return Response.json(
+      {
+        status: 'error',
+        message: `Invalid request: ${parsed.error.issues[0]?.message}`,
+      },
+      { status: 400 },
+    );
+  }
+  const { action, serverName } = parsed.data;
   try {
     switch (action) {
       case 'restart':

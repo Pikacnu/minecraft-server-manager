@@ -7,40 +7,10 @@ import React, {
   type ReactNode,
 } from 'react';
 import { ThemeMode, NotificationPosition } from '../utils/enums';
+import type { SystemSettings, UIPreferences } from '@/utils/schemas';
 
 // Re-export for convenience
 export { ThemeMode, NotificationPosition };
-
-interface SystemSettings {
-  readOnly: {
-    namespace: string;
-    appName: string;
-    nfsServer: string;
-    nfsRootPath: string;
-    isDevelopment: boolean;
-  };
-  sensitive: {
-    velocitySecret: string;
-    rconPassword: string;
-    cloudflareApiToken: string;
-  };
-  network: {
-    domainName: string;
-    proxyIp: string;
-    srvPort: number;
-    zoneId: string;
-    wildcardDomainPrefix: string;
-    isWildcardDomain: boolean;
-  };
-}
-
-interface UIPreferences {
-  theme: ThemeMode;
-  notificationDuration: number;
-  notificationPosition: NotificationPosition;
-  autoRefreshInterval: number;
-  compactMode: boolean;
-}
 
 interface SettingsContextType {
   systemSettings: SystemSettings | null;

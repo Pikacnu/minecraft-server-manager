@@ -4,182 +4,42 @@
  * Provides type-safe filtering and validation for configuration edits
  */
 
-// Bedrock Geyser Configuration
-export interface GeyseBedrock {
-  port?: number;
-  motd1?: string;
-  motd2?: string;
-  'server-name'?: string;
-  'compression-level'?: number;
-}
+import { GateConfigSchema } from './schemas';
+import { GATE_FIELD_DEFINITIONS } from './gateType';
+import type {
+  GateConfig,
+  GateConfigCore,
+  GateForwardingConfig,
+  GateStatusConfig,
+  GateCompressionConfig,
+  GateQuotaConfig,
+  GateQueryConfig,
+  GateAuthConfig,
+  GateLiteConfig,
+  GateBedrockConfig,
+  GateConnectConfig,
+  GateApiConfig,
+  GeysManagedConfig,
+  GeyseConfigOverrides,
+} from './schemas';
 
-export interface GeyseConfigOverrides {
-  bedrock?: GeyseBedrock;
-  'debug-mode'?: boolean;
-  'forward-player-ping'?: boolean;
-  'show-cooldown'?: string;
-  'show-coordinates'?: boolean;
-  'allow-custom-skulls'?: boolean;
-  'max-visible-custom-skulls'?: number;
-  'xbox-achievements-enabled'?: boolean;
-  'add-non-bedrock-items'?: boolean;
-  mtu?: number;
-  'use-direct-connection'?: boolean;
-  'force-resource-packs'?: boolean;
-  'enable-proxy-connections'?: boolean;
-  // Others
-  'floodgate-key-file'?: string;
-  'command-suggestions'?: boolean;
-  'passthrough-motd'?: boolean;
-  'passthrough-protocol-name'?: boolean;
-  'passthrough-player-counts'?: boolean;
-  'legacy-ping-passthrough'?: boolean;
-  'ping-passthrough-interval'?: number;
-  'max-players'?: number;
-  'allow-third-party-capes'?: boolean;
-  'allow-third-party-ears'?: boolean;
-  'emote-offhand-workaround'?: string;
-  'default-locale'?: string;
-  'cache-chunks'?: boolean;
-  'cache-images'?: number;
-  'above-bedrock-nether-building'?: boolean;
-  'scoreboard-packet-threshold'?: number;
-  [key: string]: any;
-}
-
-export interface GeysManagedConfig {
-  enabled: boolean;
-  jarUrl?: string;
-  dataDir?: string;
-  javaPath?: string;
-  autoUpdate?: boolean;
-  extraArgs?: string[];
-  configOverrides?: GeyseConfigOverrides;
-}
-
-export interface GateBedrockConfig {
-  enabled: boolean;
-  geyserListenAddr?: string;
-  usernameFormat?: string;
-  floodgateKeyPath?: string;
-  managed?: GeysManagedConfig;
-}
-
-// Status Configuration
-export interface GateStatusConfig {
-  motd?: string;
-  showMaxPlayers?: number;
-  favicon?: string;
-  logPingRequests?: boolean;
-  announceForge?: boolean;
-}
-
-// Compression Configuration
-export interface GateCompressionConfig {
-  threshold?: number;
-  level?: number;
-}
-
-// Quota Configuration
-export interface GateQuotaConnections {
-  enabled: boolean;
-  ops: number;
-  burst: number;
-  maxEntries: number;
-}
-
-export interface GateQuotaLogins {
-  enabled: boolean;
-  burst: number;
-  ops: number;
-  maxEntries: number;
-}
-
-export interface GateQuotaConfig {
-  connections?: GateQuotaConnections;
-  logins?: GateQuotaLogins;
-}
-
-// Query Configuration
-export interface GateQueryConfig {
-  enabled: boolean;
-  port?: number;
-  showPlugins?: boolean;
-}
-
-// Auth Configuration
-export interface GateAuthConfig {
-  sessionServerUrl?: string;
-}
-
-// Forwarding Configuration
-export interface GateForwardingConfig {
-  mode: 'legacy' | 'none' | 'bungeeguard' | 'velocity';
-  velocitySecret?: string;
-  bungeeGuardSecret?: string;
-}
-
-// Lite Configuration
-export interface GateLiteConfig {
-  enabled: boolean;
-  routes?: Array<any>;
-}
-
-// Connect Configuration
-export interface GateConnectConfig {
-  enabled: boolean;
-  name?: string;
-  allowOfflineModePlayers?: boolean;
-}
-
-// API Configuration
-export interface GateApiConfig {
-  enabled: boolean;
-  bind: string;
-  [key: string]: any;
-}
-
-// Main Config Structure
-export interface GateConfigCore {
-  // Required fields
-  bind: string;
-  onlineMode: boolean;
-  servers: Record<string, string>;
-  try: string[];
-  shutdownReason: string;
-  forwarding: GateForwardingConfig;
-  forcedHosts: Record<string, string[]>;
-
-  // Optional fields
-  status?: GateStatusConfig;
-  acceptTransfers?: boolean;
-  bungeePluginChannelEnabled?: boolean;
-  builtinCommands?: boolean;
-  requireBuiltinCommandPermissions?: boolean;
-  announceProxyCommands?: boolean;
-  forceKeyAuthentication?: boolean;
-  compression?: GateCompressionConfig;
-  connectionTimeout?: string;
-  readTimeout?: string;
-  failoverOnUnexpectedServerDisconnect?: boolean;
-  onlineModeKickExistingPlayers?: boolean;
-  debug?: boolean;
-  proxyProtocol?: boolean;
-  quota?: GateQuotaConfig;
-  query?: GateQueryConfig;
-  auth?: GateAuthConfig;
-  lite?: GateLiteConfig;
-  bedrock?: GateBedrockConfig;
-
-  [key: string]: any;
-}
-
-export interface GateConfig {
-  config: GateConfigCore;
-  connect?: GateConnectConfig;
-  api: GateApiConfig;
-  [key: string]: any;
-}
+// Re-export all Gate config types from schemas
+export type {
+  GateConfig,
+  GateConfigCore,
+  GateForwardingConfig,
+  GateStatusConfig,
+  GateCompressionConfig,
+  GateQuotaConfig,
+  GateQueryConfig,
+  GateAuthConfig,
+  GateLiteConfig,
+  GateBedrockConfig,
+  GateConnectConfig,
+  GateApiConfig,
+  GeysManagedConfig,
+  GeyseConfigOverrides,
+};
 
 /**
  * Read-only fields that cannot be modified through the UI
@@ -191,87 +51,16 @@ export const READONLY_GATE_PATHS = ['api', 'config.bind', 'config.forwarding'];
  * Field filtering helper
  * Returns only the fields and values that match the YAML structure
  */
-export function filterGateConfig(config: any): GateConfig {
-  if (!config || typeof config !== 'object') {
-    throw new Error('Invalid Gate configuration: must be an object');
+export function filterGateConfig(config: unknown): GateConfig {
+  const result = GateConfigSchema.safeParse(config);
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    const path = firstIssue?.path?.join('.') || '(root)';
+    throw new Error(
+      `Gate configuration validation failed at "${path}": ${firstIssue?.message}`,
+    );
   }
-
-  // Validate required top-level keys
-  if (!config.config || typeof config.config !== 'object') {
-    throw new Error('Gate configuration must have a "config" object');
-  }
-
-  if (!config.api || typeof config.api !== 'object') {
-    throw new Error('Gate configuration must have an "api" object');
-  }
-
-  // Validate required config fields
-  const gateConfig = config.config as any;
-  const requiredFields = [
-    'bind',
-    'onlineMode',
-    'servers',
-    'try',
-    'shutdownReason',
-    'forwarding',
-    'forcedHosts',
-  ];
-
-  for (const field of requiredFields) {
-    if (!(field in gateConfig)) {
-      throw new Error(`Gate config missing required field: ${field}`);
-    }
-  }
-
-  // Validate field types
-  if (typeof gateConfig.bind !== 'string') {
-    throw new Error('config.bind must be a string');
-  }
-
-  if (typeof gateConfig.onlineMode !== 'boolean') {
-    throw new Error('config.onlineMode must be a boolean');
-  }
-
-  if (
-    typeof gateConfig.servers !== 'object' ||
-    Array.isArray(gateConfig.servers)
-  ) {
-    throw new Error('config.servers must be an object (key-value pairs)');
-  }
-
-  if (!Array.isArray(gateConfig.try)) {
-    throw new Error('config.try must be an array');
-  }
-
-  if (typeof gateConfig.shutdownReason !== 'string') {
-    throw new Error('config.shutdownReason must be a string');
-  }
-
-  if (
-    typeof gateConfig.forwarding !== 'object' ||
-    Array.isArray(gateConfig.forwarding)
-  ) {
-    throw new Error('config.forwarding must be an object');
-  }
-
-  if (
-    typeof gateConfig.forcedHosts !== 'object' ||
-    Array.isArray(gateConfig.forcedHosts)
-  ) {
-    throw new Error('config.forcedHosts must be an object');
-  }
-
-  // Validate API fields
-  const apiConfig = config.api as any;
-  if (typeof apiConfig.enabled !== 'boolean') {
-    throw new Error('api.enabled must be a boolean');
-  }
-
-  if (typeof apiConfig.bind !== 'string') {
-    throw new Error('api.bind must be a string (host:port format)');
-  }
-
-  return config as GateConfig;
+  return result.data;
 }
 
 /**
@@ -704,10 +493,32 @@ export const FIELD_METADATA: Record<string, FieldMetadata> = {
 };
 
 /**
- * Get metadata for a field by path
+ * Get metadata for a field by path.
+ * Checks static FIELD_METADATA first, then falls back to dynamic GATE_FIELD_DEFINITIONS.
  */
 export function getFieldMetadata(path: string): FieldMetadata | undefined {
-  return FIELD_METADATA[path];
+  if (FIELD_METADATA[path]) return FIELD_METADATA[path];
+
+  // Fallback: derive metadata from auto-generated GATE_FIELD_DEFINITIONS
+  const entry = GATE_FIELD_DEFINITIONS.find((f) => f.path === path);
+  if (!entry) return undefined;
+
+  const type: FieldMetadata['type'] = (() => {
+    switch (entry.type) {
+      case 'string': return 'string';
+      case 'number': return 'number';
+      case 'boolean': return 'boolean';
+      case 'array': return 'array';
+      default: return 'object';
+    }
+  })();
+
+  return {
+    type,
+    label: path.split('.').pop(),
+    description: entry.description || undefined,
+    defaultValue: entry.defaultValue,
+  };
 }
 
 /**
@@ -754,7 +565,7 @@ function createFallbackObjectMetadata(
 
 /**
  * Return all field suggestions that can be added under a path.
- * Suggestions are inferred from FIELD_METADATA descendants and grouped by direct child key.
+ * Enumerates from both static FIELD_METADATA and dynamic GATE_FIELD_DEFINITIONS.
  */
 export function getAvailableFieldSuggestions(path: string): FieldSuggestion[] {
   const normalizedPath = normalizeSuggestionPath(path);
@@ -763,19 +574,24 @@ export function getAvailableFieldSuggestions(path: string): FieldSuggestion[] {
   const prefix = `${normalizedPath}.`;
   const childPaths = new Map<string, string[]>();
 
-  Object.keys(FIELD_METADATA).forEach((fieldPath) => {
-    if (!fieldPath.startsWith(prefix)) return;
+  const collectFrom = (keys: string[]) => {
+    keys.forEach((fieldPath) => {
+      if (!fieldPath.startsWith(prefix)) return;
 
-    const remainder = fieldPath.slice(prefix.length);
-    if (!remainder) return;
+      const remainder = fieldPath.slice(prefix.length);
+      if (!remainder) return;
 
-    const [childKey] = remainder.split('.');
-    if (!childKey) return;
+      const [childKey] = remainder.split('.');
+      if (!childKey) return;
 
-    const existing = childPaths.get(childKey) ?? [];
-    existing.push(fieldPath);
-    childPaths.set(childKey, existing);
-  });
+      const existing = childPaths.get(childKey) ?? [];
+      existing.push(fieldPath);
+      childPaths.set(childKey, existing);
+    });
+  };
+
+  collectFrom(Object.keys(FIELD_METADATA));
+  collectFrom(GATE_FIELD_DEFINITIONS.map((f) => f.path));
 
   const suggestions: FieldSuggestion[] = [];
 
@@ -783,8 +599,7 @@ export function getAvailableFieldSuggestions(path: string): FieldSuggestion[] {
     const directPath = `${normalizedPath}.${key}`;
     if (isReadOnlyField(directPath)) return;
 
-    const metadata =
-      FIELD_METADATA[directPath] ??
+    const metadata = getFieldMetadata(directPath) ??
       createFallbackObjectMetadata(key, paths.length);
 
     suggestions.push({

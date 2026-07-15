@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { checkResourceExists, k8sApiEndpoint } from '@/utils/k8s';
 import { Namespace } from '@/utils/config';
+import { InstanceScannerActionSchema } from '@/utils/schemas';
 
 function parseProperties(content: string) {
   const lines = content.split(/\r?\n/);
@@ -135,24 +136,23 @@ export async function GET(_request: Request): Promise<Response> {
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = (await request.json()) as any;
-    const action = body.action as string;
-    if (!action) {
+    const body = await request.json();
+    const parsed = InstanceScannerActionSchema.safeParse(body);
+    if (!parsed.success) {
       return Response.json(
-        { status: 'error', message: 'Missing action' },
+        {
+          status: 'error',
+          message: `Invalid request: ${parsed.error.issues[0]?.message}`,
+        },
         { status: 400 },
       );
     }
 
+    const { action } = parsed.data;
+
     switch (action) {
       case 'delete': {
-        const { name } = body as { name: string };
-        if (!name) {
-          return Response.json(
-            { status: 'error', message: 'Missing name' },
-            { status: 400 },
-          );
-        }
+        const { name } = parsed.data;
         try {
           if (FileControllerManager.hasController(name)) {
             try {
@@ -170,17 +170,8 @@ export async function POST(request: Request): Promise<Response> {
         return Response.json({ status: 'ok' }, { status: 200 });
       }
       case 'create-server': {
-        const { name, defaults } = body as {
-          name: string;
-          defaults?: Record<string, any>;
-        };
-        if (!name) {
-          return Response.json(
-            { status: 'error', message: 'Missing name' },
-            { status: 400 },
-          );
-        }
-        const s = defaults || {};
+        const { name, defaults } = parsed.data;
+        const s: Record<string, any> = defaults || {};
         const serverName = (s.SERVER_NAME || name)
           .replaceAll(' ', '-')
           .toLowerCase();

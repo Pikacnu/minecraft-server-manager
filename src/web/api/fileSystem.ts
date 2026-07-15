@@ -3,6 +3,14 @@ import { DirectoryType, type DirectoryStructure } from '@/utils/type';
 import archiver from 'archiver';
 import * as unzipper from 'unzipper';
 import { lstatSync, existsSync, mkdirSync } from 'node:fs';
+import { z } from 'zod';
+
+const CompressRequestSchema = z.object({
+  action: z.literal('compress'),
+  name: z.string().min(1, 'Missing name'),
+  files: z.array(z.any()).min(1, 'Missing files'),
+  outputPath: z.string().min(1, 'Missing outputPath'),
+});
 
 function normalizeFileStructure(
   fileStructure: Record<string, string | Record<string, string>>,
@@ -168,14 +176,14 @@ export async function POST(request: Request) {
   const action = body.action;
 
   if (action === 'compress') {
-    const { name, files, outputPath } = body;
-
-    if (!name || !files || !outputPath) {
+    const parsed = CompressRequestSchema.safeParse(body);
+    if (!parsed.success) {
       return Response.json(
         { success: false, message: 'Missing required parameters.' },
         { status: 400 },
       );
     }
+    const { name, files, outputPath } = parsed.data;
 
     try {
       const controller = FileControllerManager.getController(name);

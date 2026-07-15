@@ -1,19 +1,22 @@
 import { Manager } from '@/manager';
+import { ServerLogsQuerySchema } from '@/utils/schemas';
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const serverName = url.searchParams.get('serverName') || '';
   const requestedLines = Number(url.searchParams.get('lines') || '120');
-  const lines = Number.isFinite(requestedLines)
-    ? Math.min(1000, Math.max(1, Math.floor(requestedLines)))
-    : 120;
 
-  if (!serverName) {
+  const parsed = ServerLogsQuerySchema.safeParse({
+    serverName,
+    lines: Number.isFinite(requestedLines) ? requestedLines : 120,
+  });
+  if (!parsed.success) {
     return Response.json(
-      { status: 'error', message: 'Missing serverName' },
+      { status: 'error', message: 'Missing or invalid serverName' },
       { status: 400 },
     );
   }
+  const { lines } = parsed.data;
 
   try {
     const data = await Manager.readServerLogs(serverName, lines);

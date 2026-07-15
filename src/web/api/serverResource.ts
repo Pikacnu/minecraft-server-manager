@@ -1,10 +1,16 @@
 import { ResourceMonitor } from '@/manager/resource-monitor';
+import { z } from 'zod';
+
+const ResourceQuerySchema = z.object({
+  serverName: z.string().min(1, 'Missing serverName'),
+});
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const serverName = url.searchParams.get('serverName') || '';
 
-  if (!serverName) {
+  const parsed = ResourceQuerySchema.safeParse({ serverName });
+  if (!parsed.success) {
     return Response.json(
       { status: 'error', message: 'Missing serverName' },
       { status: 400 },

@@ -15,10 +15,6 @@ import {
   isGateConfigEqual,
 } from '@/utils/gateConfig';
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 // Get Gate deployment status
 async function GET(_request: Request): Promise<Response> {
   try {
@@ -109,13 +105,6 @@ async function POST(request: Request): Promise<Response> {
           );
         }
 
-        if (!isPlainObject(config)) {
-          return Response.json(
-            { status: 'error', message: 'Invalid config payload' },
-            { status: 400 },
-          );
-        }
-
         // Get current config
         const currentConfig = (await getConfigMapData(
           Namespace,
@@ -124,10 +113,10 @@ async function POST(request: Request): Promise<Response> {
           'yaml',
         )) as GateConfig;
 
-        // Validate config structure against YAML schema
+        // Validate config structure against YAML schema using Zod
         let validatedConfig: GateConfig;
         try {
-          validatedConfig = filterGateConfig(config as any);
+          validatedConfig = filterGateConfig(config);
         } catch (validationError) {
           return Response.json(
             {
