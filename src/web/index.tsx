@@ -39,17 +39,9 @@ export const webServer = async (args?: WebServerArguments) => {
   const server = serve<WebSocketConnectionData>({
     idleTimeout: 120,
     routes: {
-      // Serve index.html for all unmatched routes in development.
+      // Serve index.html for the root path; Bun handles SPA asset bundling.
       '/': index,
-      //'/api/server-info': serverInfo,
-      '/api/server-manage': serverManage,
-      '/api/server-instance': serverInstance,
-      '/api/file-system': fileSystem,
-      '/api/server-logs': serverLogs,
-      '/api/server-resource': serverResource,
-      '/api/gate-manage': gateManage,
-      '/api/settings': settings,
-      '/api/instance-scanner': instanceScanner,
+      '/*': index,
     },
     fetch: async (request, server) => {
       const url = new URL(request.url);
@@ -70,6 +62,33 @@ export const webServer = async (args?: WebServerArguments) => {
         return new Response(`426 Upgrade Required`, { status: 426 });
       }
 
+      // Dispatch API routes that were previously in `routes`.
+      const apiRouteMap = {
+        '/api/server-manage': serverManage,
+        '/api/server-instance': serverInstance,
+        '/api/file-system': fileSystem,
+        '/api/server-logs': serverLogs,
+        '/api/server-resource': serverResource,
+        '/api/gate-manage': gateManage,
+        '/api/settings': settings,
+        '/api/instance-scanner': instanceScanner,
+      } as const;
+
+      const apiHandler = apiRouteMap[pathname as keyof typeof apiRouteMap];
+      if (apiHandler) {
+        const methodHandler = (
+          apiHandler as Record<
+            string,
+            (req: Request) => Response | Promise<Response>
+          >
+        )[request.method];
+        if (typeof methodHandler === 'function') {
+          return methodHandler(request);
+        }
+        return new Response(`405 Method Not Allowed`, { status: 405 });
+      }
+
+      // For non-API paths, Bun's `routes` handles static/SPA fallback.
       return new Response(`404 Not Found`, { status: 404 });
     },
     websocket: {

@@ -23,6 +23,57 @@ if (process.env.KUBERNETES_SERVICE_HOST) {
   // Running in K8s cluster - use in-cluster config
   console.log('Using in-cluster Kubernetes configuration');
   kubeConfig.loadFromCluster();
+
+  // Override global fetch to trust the K8s API server's self-signed certificate.
+  // @kubernetes/client-node uses the global fetch under the hood, and Bun's
+  // native fetch validates TLS certificates by default.
+  const originalFetch = globalThis.fetch.bind(globalThis);
+  const cluster = kubeConfig.getCurrentCluster();
+  const user = kubeConfig.getCurrentUser();
+  const k8sServer = cluster?.server;
+  if (cluster && k8sServer) {
+    const k8sOrigin = new URL(k8sServer).origin;
+    const tlsOptions: RequestInit & {
+      tls?: {
+        ca?: string | Buffer;
+        cert?: string | Buffer;
+        key?: string | Buffer;
+        rejectUnauthorized?: boolean;
+      };
+    } = {
+      tls: { rejectUnauthorized: false },
+    };
+
+    // Prefer the cluster CA if available (mounted at /var/run/secrets/...)
+    if (cluster.caData) {
+      tlsOptions.tls!.ca = Buffer.from(cluster.caData, 'base64');
+    }
+    if (user?.certData) {
+      tlsOptions.tls!.cert = Buffer.from(user.certData, 'base64');
+    }
+    if (user?.keyData) {
+      tlsOptions.tls!.key = Buffer.from(user.keyData, 'base64');
+    }
+
+    globalThis.fetch = Object.assign(
+      (
+        url: Parameters<typeof originalFetch>[0],
+        init?: Parameters<typeof originalFetch>[1],
+      ) => {
+        const urlStr =
+          typeof url === 'string'
+            ? url
+            : url instanceof URL
+              ? url.href
+              : String(url);
+        if (urlStr.startsWith(k8sOrigin)) {
+          return originalFetch(url, { ...init, ...tlsOptions });
+        }
+        return originalFetch(url, init);
+      },
+      originalFetch,
+    );
+  }
 } else {
   kubeConfig.loadFromDefault();
 
