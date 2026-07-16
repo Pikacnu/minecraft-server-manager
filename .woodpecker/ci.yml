@@ -9,7 +9,15 @@ steps:
     when:
       - event: [push, pull_request]
 
-  - name: build-and-push
+  - name: build
+    image: bun
+    commands:
+      - bun install --production
+      - bun run build
+    when:
+      - event: [pull_request]
+
+  - name: docker-push
     image: woodpeckerci/plugin-kaniko
     settings:
       registry:
@@ -27,6 +35,7 @@ steps:
     when:
       - event: push
         branch: main
+      - event: tag
 
   - name: discord-success
     image: appleboy/drone-discord
@@ -46,7 +55,7 @@ steps:
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
     when:
-      - event: [push, pull_request]
+      - event: [push, pull_request, tag]
         status: [success]
 
   - name: discord-failure
@@ -67,7 +76,7 @@ steps:
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
     when:
-      - event: [push, pull_request]
+      - event: [push, pull_request, tag]
         status: [failure]
 
   - name: discord-event
@@ -87,4 +96,4 @@ steps:
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
     when:
-      - event: [tag, deployment]
+      - event: [deployment]
