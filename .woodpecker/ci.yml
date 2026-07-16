@@ -10,7 +10,7 @@ steps:
       exit-code: 1
       skip-dirs: vendor,node_modules
     when:
-      - event: [push, pull_request]
+      - event: [push, pull_request, tag]
 
   - name: build
     image: bun
@@ -53,7 +53,7 @@ steps:
         > **Repo**: ${CI_REPO}
         > **Branch**: ${CI_COMMIT_BRANCH}
         > **Commit**: ${CI_COMMIT_SHA:0:8} | ${CI_COMMIT_SHA}
-        > **Message**: ${CI_COMMIT_MESSAGE}
+        > **Message**: ```${CI_COMMIT_MESSAGE}````
         > **Author**: ${CI_COMMIT_AUTHOR}
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
@@ -74,7 +74,7 @@ steps:
         > **Repo**: ${CI_REPO}
         > **Branch**: ${CI_COMMIT_BRANCH}
         > **Commit**: ${CI_COMMIT_SHA:0:8} | ${CI_COMMIT_SHA}
-        > **Message**: ${CI_COMMIT_MESSAGE}
+        > **Message**: ```${CI_COMMIT_MESSAGE}```
         > **Author**: ${CI_COMMIT_AUTHOR}
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
@@ -94,7 +94,7 @@ steps:
         📦 ${CI_PIPELINE_EVENT}: ${CI_COMMIT_REF}
         > **Repo**: ${CI_REPO}
         > **Commit**: ${CI_COMMIT_SHA:0:8} | ${CI_COMMIT_SHA}
-        > **Message**: ${CI_COMMIT_MESSAGE}
+        > **Message**:```${CI_COMMIT_MESSAGE}```
         > **Author**: ${CI_COMMIT_AUTHOR}
         > **Link**: {{build.link}}
         > **Forge**: ${CI_PIPELINE_FORGE_URL}
