@@ -9,15 +9,24 @@ steps:
     when:
       - event: [push, pull_request]
 
+  - name: set-short-sha
+    image: bash
+    commands:
+      - echo "SHORT_SHA=${CI_COMMIT_SHA:0:8}" >> .env
+    when:
+      - event: push
+        branch: main
+
   - name: build-and-push
     image: woodpeckerci/plugin-kaniko
+    depends_on: [set-short-sha]
     settings:
       registry:
         from_secret: DOCKER_REGISTRY
       repo: minecraft-server-manager
       tags:
         - latest
-        - ${CI_COMMIT_TAG:-${CI_COMMIT_SHA}}
+        - ${CI_COMMIT_TAG:-${SHORT_SHA}}
       dockerfile: Dockerfile
       context: .
       build-args:
@@ -37,13 +46,14 @@ steps:
         from_secret: DISCORD_WEBHOOK_TOKEN
       username: minecraft-server-manager CI
       message: |
-        ✅ Build succeeded
-        Repo: {{repo.name}}
-        Branch: {{build.branch}}
-        Commit: {{truncate build.commit 8}}
-        Link: {{build.link}}
+        ✅ Build #{{build.number}} succeeded
+        > **Repo**: {{repo.owner}}/{{repo.name}}
+        > **Branch**: {{build.branch}}
+        > **Commit**: {{truncate build.commit 8}}
+        > **Author**: {{build.author}}
+        > **Link**: {{build.link}}
     when:
-      - event: [push, pull_request, tag, deployment]
+      - event: [push, pull_request]
         status: [success]
 
   - name: discord-failure
@@ -55,11 +65,29 @@ steps:
         from_secret: DISCORD_WEBHOOK_TOKEN
       username: minecraft-server-manager CI
       message: |
-        ❌ Build failed
-        Repo: {{repo.name}}
-        Branch: {{build.branch}}
-        Commit: {{truncate build.commit 8}}
-        Link: {{build.link}}
+        ❌ Build #{{build.number}} failed
+        > **Repo**: {{repo.owner}}/{{repo.name}}
+        > **Branch**: {{build.branch}}
+        > **Commit**: {{truncate build.commit 8}}
+        > **Author**: {{build.author}}
+        > **Link**: {{build.link}}
     when:
-      - event: [push, pull_request, tag, deployment]
+      - event: [push, pull_request]
         status: [failure]
+
+  - name: discord-event
+    image: appleboy/drone-discord
+    settings:
+      webhook_id:
+        from_secret: DISCORD_WEBHOOK_ID
+      webhook_token:
+        from_secret: DISCORD_WEBHOOK_TOKEN
+      username: minecraft-server-manager CI
+      message: |
+        📦 {{uppercasefirst build.event}}: {{build.ref}}
+        > **Repo**: {{repo.owner}}/{{repo.name}}
+        > **Commit**: {{truncate build.commit 8}}
+        > **Author**: {{build.author}}
+        > **Link**: {{build.link}}
+    when:
+      - event: [tag, deployment]
