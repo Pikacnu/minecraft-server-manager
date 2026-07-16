@@ -14,19 +14,16 @@ steps:
     settings:
       registry:
         from_secret: DOCKER_REGISTRY
-      repo:
-        from_secret: IMAGE_NAME
+      repo: minecraft-server-manager
       tags:
         - latest
         - ${CI_COMMIT_TAG:-${CI_COMMIT_SHA}}
-        - ${CI_COMMIT_TAG}
       dockerfile: Dockerfile
       context: .
       build-args:
         NODE_ENV: production
       docker-config-json:
         from_secret: docker-config-json
-      cache: true
     when:
       - event: push
         branch: main
